@@ -19,6 +19,8 @@ args = parser.parse_args()
 params = dict()
 params["model_folder"] = "/openpose/models/"
 params["number_people_max"] = 1
+params["net_resolution"] = '368x368' # todo: non mi garba
+
 
 # Starting OpenPose
 opWrapper = op.WrapperPython()
@@ -30,23 +32,25 @@ imagePaths = glob.glob(args.image_dir + '/**/**/**/*.jpg')
 
 # Process and display images
 for imagePath in tqdm(imagePaths):
-    datum = op.Datum()
-    imageToProcess = cv2.imread(imagePath)
 
-    datum.cvInputData = imageToProcess
-    opWrapper.emplaceAndPop([datum])
+    out_file = imagePath.replace('tracked_persons', 'tracked_skeletons').replace('.jpg', '.npy')
+    if not os.path.exists(out_file):
+        datum = op.Datum()
+        imageToProcess = cv2.imread(imagePath)
 
-    joints = datum.poseKeypoints
+        datum.cvInputData = imageToProcess
+        opWrapper.emplaceAndPop([datum])
 
-    if not args.no_display:
-        cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", datum.cvOutputData)
-        cv2.waitKey(0)
+        joints = datum.poseKeypoints
 
-    if args.save_skeletons:
-        np_joints = np.array(joints).squeeze(axis=0)  # single person
-        out_file = imagePath.replace('tracked_persons', 'tracked_skeletons').split('.')[0]
-        out_folder = '/'.join(out_file.split('/')[:-1])
-        if not os.path.exists(out_folder):
-            os.makedirs(out_folder)
-        np.save(out_file, np_joints)
+        if not args.no_display:
+            cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", datum.cvOutputData)
+            cv2.waitKey(0)
+
+        if args.save_skeletons:
+            np_joints = np.array(joints).squeeze(axis=0)  # single person
+            out_folder = '/'.join(out_file.split('/')[:-1])
+            if not os.path.exists(out_folder):
+                os.makedirs(out_folder)
+            np.save(out_file, np_joints)
 

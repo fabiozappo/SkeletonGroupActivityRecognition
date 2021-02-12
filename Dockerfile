@@ -15,7 +15,6 @@ CMD /bin/bash
 
 # https://hub.docker.com/r/cwaffles/openpose
 FROM nvidia/cuda:10.0-cudnn7-devel as openpose
-#FROM nvidia/cuda:11.0-cudnn8-devel-ubuntu18.04-rc as openpose
 
 #get deps
 RUN apt-get update && \
