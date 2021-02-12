@@ -43,5 +43,6 @@ WORKDIR /openpose/build
 RUN sed -i 's/option(BUILD_PYTHON "Build OpenPose python." OFF)/option(BUILD_PYTHON "Build OpenPose python." ON)/' ../CMakeLists.txt
 RUN cmake .. && make -j `nproc`
 
-WORKDIR /openpose
+WORKDIR /work/code
 ENV PYTHONPATH "${PYTHONPATH}:/openpose/build/python/openpose"
+RUN python3 -m pip install tqdm
