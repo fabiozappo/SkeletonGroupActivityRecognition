@@ -6,7 +6,7 @@ has_to_apply_smoothing = True
 has_to_erase_feet_and_head = True
 batch_size = 128
 remove_precision_feature = False  # todo: da implementare
-normalize_feature = True
+normalize_feature = True # todo: da sistemare
 mean_torso_len = 33.86
 mean_midhip = [42.9451, 68.7730]
 

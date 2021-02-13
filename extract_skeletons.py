@@ -21,7 +21,6 @@ params["model_folder"] = "/openpose/models/"
 params["number_people_max"] = 1
 params["net_resolution"] = '368x368' # todo: non mi garba
 
-
 # Starting OpenPose
 opWrapper = op.WrapperPython()
 opWrapper.configure(params)
@@ -42,15 +41,21 @@ for imagePath in tqdm(imagePaths):
         opWrapper.emplaceAndPop([datum])
 
         joints = datum.poseKeypoints
+        np_joints = np.array(joints).squeeze(axis=0)  # single person
 
         if not args.no_display:
-            cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", datum.cvOutputData)
+            plot_image = datum.cvOutputData
+            for x, y, p in np_joints[:15]:
+                plot_image = cv2.circle(plot_image, (x, y), radius=2, color=(0, 0, 0), thickness=-1)
+            cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", plot_image)
             cv2.waitKey(0)
 
         if args.save_skeletons:
-            np_joints = np.array(joints).squeeze(axis=0)  # single person
             out_folder = '/'.join(out_file.split('/')[:-1])
             if not os.path.exists(out_folder):
                 os.makedirs(out_folder)
+
+            np_joints = np_joints if np_joints.shape != (25, 3) else np.zeros((25, 3))
             np.save(out_file, np_joints)
 
+#python3 extract_skeletons.py --image_dir /work/data_and_extra/volleyball_dataset/tracked_persons/ --no --save

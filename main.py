@@ -156,25 +156,25 @@ if __name__ == "__main__":
     acc_groups = np.zeros((num_runs_kmeans, len(range_clusters)))
 
     # todo: comment for supervised learning
-    # pca_features = {phase: None for phase in ['trainval', 'test']}
-    # kmeans_trained = None
+    pca_features = {phase: None for phase in ['trainval', 'test']}
+    kmeans_trained = None
 
     print('loss_factor = ', loss_factor)
 
     for i in range(num_runs_kmeans):
 
         for j, cluster in enumerate(range_clusters):
-            visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase) for phase in ['trainval', 'test']}
+            # visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase) for phase in ['trainval', 'test']}
             # visual_features = {phase: Deep_Clustering_Unsupervised_Learning.compute_visual_features(phase) for phase in
             #                    ['trainval', 'test']}
-            pca_model = Clustering_with_p3d_features.fit_pca(256, visual_features)
-            pca_features = {phase: Clustering_with_p3d_features.compute_pca_features(phase, pca_model) for phase in ['trainval', 'test']}  # todo: ucomment for supervised learning
+            # pca_model = Clustering_with_p3d_features.fit_pca(256, visual_features)
+            # pca_features = {phase: Clustering_with_p3d_features.compute_pca_features(phase, pca_model) for phase in ['trainval', 'test']}  # todo: ucomment for supervised learning
             # pca_features = {phase: Deep_Clustering_Unsupervised_Learning.compute_pca_features(phase, pca_model) for
             #                 phase in ['trainval', 'test']}  # todo: ucomment for supervised learning
 
             num_classes = cluster if Config.use_pseudo_labels else Config.num_action_classes
-            kmeans_trained = Clustering_with_p3d_features.fit_kmeans(cluster,
-                                                                     pca_features)  # todo: uncomment for unsupervised learning
+            # kmeans_trained = Clustering_with_p3d_features.fit_kmeans(cluster,
+            #                                                          pca_features)  # todo: uncomment for unsupervised learning
 
             # Create training and validation datasets
             group_datasets = {
