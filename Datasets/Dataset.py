@@ -9,15 +9,17 @@ from scipy import ndimage
 from Configs import Config, Deep_Clustering_Unsupervised_Learning, Clustering_with_p3d_features
 from sklearn.metrics.cluster import normalized_mutual_info_score
 import glob
+from tqdm import tqdm
 
 hasToUseAbsoluteCoordinates = False  # todo: forse sarebbe piu opportuno chiamarlo hasToShowAbsoluteSkeletons?
 hasToShowDistances, person_to_show_dist = False, 0
 
 # Trainval and test list
 # trainval_and_test_dicts = {'trainval': [0, 1, 2, 3, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 22, 23, 24, 26, 27, 28, 30, 31, 32, 33, 36, 38, 39, 40, 41, 42, 46, 48, 49, 50, 51, 52, 53, 54],
-#                            'test': [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
-trainval_and_test_dicts = {'trainval': [1],
-                           'test': [2]}
+                           # 'test': [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
+                           # 'test': [4, 5, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
+trainval_and_test_dicts = {'trainval': [13],
+                           'test': [23]}
 
 action_list = ['waiting', 'setting', 'digging', 'falling', 'spiking', 'blocking', 'jumping', 'moving', 'standing']
 activity_list = ['r_set', 'r_spike', 'r-pass', 'r_winpoint', 'l_winpoint', 'l-pass', 'l-spike', 'l_set']
@@ -25,6 +27,8 @@ activity_list = ['r_set', 'r_spike', 'r-pass', 'r_winpoint', 'l_winpoint', 'l-pa
 
 persons_imgs_path = '/work/data_and_extra/volleyball_dataset/tracked_persons/'
 skeletons_path = '/work/data_and_extra/volleyball_dataset/tracked_skeletons/'
+weights_path = '/work/code/Weights/p3d_rgb_199.checkpoint.pth.tar'
+features_path = '/work/data_and_extra/volleyball_dataset/P3Dfeatures'
 
 
 # Group dataset: 3490 gruppi di training
@@ -58,7 +62,7 @@ def center_skeleton_in_midhip_and_divide_by_torso(group_spatio_temporal_feature)
 def recover_imgpath_from_jsonpath(json_path):
     # print json_path
     match_folder, window_folder, frame_folder, json_name = json_path.split('/')[-4:]
-    image_name = json_name.replace('_keypoints.json', '.jpg')
+    image_name = json_name.replace('.npy', '.jpg')
     person_frame_path = os.path.join(skeletons_path, match_folder, window_folder, frame_folder, image_name)
     # print person_frame_path, os.path.exists(person_frame_path)
     return person_frame_path
@@ -203,11 +207,11 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
     group_group_dynamic_features = []  # lista di differenze di scheletri n x 15 x 2 x 10
     group_images_path = []  # contiene n, 10 stringhe image-path, un blocco = una sequenza, potrebbe servire????
 
-    for match_folder in trainval_and_test_dicts[mode]:  # jsons/0
+    for match_folder in tqdm(trainval_and_test_dicts[mode]):  # jsons/0
         match_path = os.path.join(skeletons_path, str(match_folder))
-        print('loading jsons of match:', match_path)
+        # print('loading jsons of match:', match_path)
 
-        for seq_folder in os.listdir(match_path):  # jsons/0/3596
+        for seq_folder in os.listdir(match_path)[:3]:  # jsons/0/3596
             seq_path = os.path.join(match_path, seq_folder)
             main_frame_path = os.path.join(seq_path, seq_folder)  # jsons/0/3596/3596
 
@@ -315,6 +319,7 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
 
     }
 
+    print('person_clip has len: {}'.format(len(person_images_path)))
     print('person_features_list has len: {}, flipped has len: {}'.format(len(person_features_list),
                                                                          len(flipped_person_features_list)))
     print('person_group_dynamic_features has len: {}, flipped has len: {}'.format(len(person_group_dynamic_features),
@@ -337,8 +342,11 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
 # Inizializzazione comune delle features
 since = time.time()
 features = {phase: initialize_group_feature_and_label_list(phase, skeletons_path) for phase in ['trainval', 'test']}
+visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase, weights_path=weights_path,
+                   images_paths=features[phase]['person_images_path']) for phase in ['trainval', 'test']}
 
 print('time elapsed in creating groups features dataset:', time.time() - since)
+
 
 
 class GroupFeatures(Dataset):
@@ -365,6 +373,7 @@ class GroupFeatures(Dataset):
 
         self.num_actors = sum([len(action_labels) for action_labels in self.action_labels_list])
         self.model_internal_feature_list = []
+        self.person_clips = features[mode]['person_images_path']
         # self.action_labels_list = [torch.randint(low=0, high=9, size=(12,)) for group_features in self.group_features_list]  # todo: remove random initialization
 
         if Config.use_pseudo_labels and Config.use_double_loss_model:

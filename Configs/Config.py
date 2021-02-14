@@ -41,7 +41,7 @@ seq_dim = 10  # todo: lstm verra' riusata un giorno?
 use_dist_as_input_stream = True
 
 # Unsupervised clustering
-use_pseudo_labels = False # TODO: RICORDATI CHE KMEANS E PCA ORA SONO DETERMINISTICI
+use_pseudo_labels = True # TODO: RICORDATI CHE KMEANS E PCA ORA SONO DETERMINISTICI
 range_clusters = range(10, 91, 10) # todo 101
 num_runs_kmeans = 1
 test_visual_features = True

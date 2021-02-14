@@ -41,7 +41,7 @@ for imagePath in tqdm(imagePaths):
         opWrapper.emplaceAndPop([datum])
 
         joints = datum.poseKeypoints
-        np_joints = np.array(joints).squeeze(axis=0)  # single person
+        np_joints = np.array(joints).squeeze(axis=0)  # assert single person detection
 
         if not args.no_display:
             plot_image = datum.cvOutputData
@@ -55,7 +55,8 @@ for imagePath in tqdm(imagePaths):
             if not os.path.exists(out_folder):
                 os.makedirs(out_folder)
 
-            np_joints = np_joints if np_joints.shape != (25, 3) else np.zeros((25, 3))
+            # if joint extraction fails save np.zeros(25x3) instead of np.empty()
+            np_joints = np_joints if np_joints.shape == (25, 3) else np.zeros((25, 3))
             np.save(out_file, np_joints)
 
 #python3 extract_skeletons.py --image_dir /work/data_and_extra/volleyball_dataset/tracked_persons/ --no --save

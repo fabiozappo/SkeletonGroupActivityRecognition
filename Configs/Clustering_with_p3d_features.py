@@ -10,15 +10,17 @@ from sklearn.preprocessing import StandardScaler, normalize
 # from torch import nn
 from torchvision import models, transforms
 from PIL import Image
-from Configs import Config
 from sklearn.decomposition import PCA
-from Models.P3D import P3D199
 from sklearn.manifold import TSNE
+from tqdm import tqdm
+from Models.P3D import P3D199
+from Configs import Config
+import glob
 
 # features_path = '/delorean/fzappardino/toremovealexnetfeatures'
 
 # features_path = '/delorean/fzappardino/P3Dfeatures'
-features_path = '/work/data_and_extra/P3Dfeatures'
+features_path = '/work/data_and_extra/volleyball_dataset/P3Dfeatures'
 dim_features = 2048
 
 def compute_labels_try_try(mode, kmeans, pca_features): # versione dove si introduce il feed randomico
@@ -31,9 +33,9 @@ def compute_labels_try_try(mode, kmeans, pca_features): # versione dove si intro
     # print list(unsupervised_labels)
     return list(unsupervised_labels.astype(long))
 
-def get_P3D_model():
+def get_P3D_model(weights_path):
     print ('Loading P3D model...')
-    model = P3D199(pretrained=True, num_classes=400)
+    model = P3D199(weights_path, pretrained=True, num_classes=400)
     # alredy removed last fully-connected layer to do feature extraction
     model = model.to(Config.device)
     return model
@@ -50,18 +52,19 @@ def fit_pca(num_components, visual_features):
     return pca.fit(visual_features['trainval'])
 
 
-def compute_visual_features(mode, images_paths=None):
-    filename = features_path + mode + '.npy'  # todo: in real clustering remove try and delete files
-    # filename = features_path + mode + '.pt'
-    if os.path.exists(filename):  # todo: change 'or' in 'and' to compute feature anyway (ATTENTO A NON CANCELLARE LE FEATURES COMPLETE!)
+def compute_visual_features(mode, weights_path=None, images_paths=None):
+    filename = features_path + mode + '.npy'
+    if os.path.exists(filename):
         print ('Loading ', filename, ' features!')
         return np.load(filename)
     else:
+        print(f'Extracting {mode} visual features...')
+
         # Compute features with pretrained model
         num_features = len(images_paths)
         visual_features = torch.zeros((num_features, dim_features), dtype=torch.float)
 
-        model = get_P3D_model()
+        model = get_P3D_model(weights_path)
         model.eval().to(Config.device).float()
 
         preprocess = transforms.Compose([
@@ -71,20 +74,24 @@ def compute_visual_features(mode, images_paths=None):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
-        for f in range(num_features):
+        for f in tqdm(range(num_features)):
             clip = torch.zeros((1, 3, 16, 160, 160), dtype=torch.float).to(Config.device)
 
             original_image_path = images_paths[f][0]  # take random element
             path_list = original_image_path.split('/')
             seq_folder, frame_folder, img_name = path_list[-3:]
-            path_list[5] = 'person_cropped_imgs_original_dimensions_DLIB_C3D'
+            path_list[4] = 'tracked_persons'
+
+            actor_id = img_name.split('_')[0]
             # print '\n'
             for t in range(-7, 9):
                 frame_folder_number = str(int(seq_folder) + t)
                 path_list[-1] = img_name.replace(frame_folder, frame_folder_number)
                 path_list[-2] = frame_folder_number
 
-                image_path = '/'.join(path_list)
+                root = '/'.join(path_list[:-1])
+                image_path = glob.glob(root + f'/{actor_id}_*.jpg')[0]
+                print(image_path)
 
                 # print '{} frame of clip. loading {}'.format(t, image_path)
                 input_image = Image.open(image_path)
@@ -156,26 +163,6 @@ def compute_pca_features(phase, pca_model=None):
 
     return principal_components
 
-
-if __name__ == "__main__":
-    # '/delorean/fzappardino/dataset/VD/person_cropped_imgs_original_dimensions_DLIB/4/48980/48976/0_48976_8_2.jpg
-    visual_features = {phase: compute_visual_features(phase) for phase in ['trainval', 'test']}
-    pca_model = fit_pca(256, visual_features)
-    pca_features = {phase: compute_pca_features(phase, pca_model) for phase in ['trainval', 'test']}
-
-    # labels = {phase: compute_labels(phase, 50, None) for phase in ['trainval', 'test']}
-
-    X = np.concatenate((pca_features['trainval'], pca_features['test']), axis=0)
-    print ('X has shape: ', X.shape)
-    tsne_results = TSNE(n_components=2, verbose=1).fit_transform(X)
-    print ('tsne_results:', tsne_results.shape)
-
-    # plt.scatter(X_embedded[:, 0], X_embedded[:, 1])
-    # plt.show()
-
-    df_tsne = pd.DataFrame(tsne_results, columns=['comp1', 'comp2'])
-    df_tsne['label'] = y[rows[:n_select]]
-    sns.lmplot(x='comp1', y='comp2', data=df_tsne, hue='label', fit_reg=False)
 
 
 

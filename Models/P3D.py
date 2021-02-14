@@ -193,7 +193,7 @@ class P3D(nn.Module):
                 m.bias.data.zero_()
 
         # some private attribute
-        self.input_size = (self.input_channel, 16, 160, 160)  # input of the network
+        self.input_size = (self.input_channel, 10, 512, 512)  # input of the network
         self.input_mean = [0.485, 0.456, 0.406] if modality == 'RGB' else [0.5]
         self.input_std = [0.229, 0.224, 0.225] if modality == 'RGB' else [np.mean([0.229, 0.224, 0.225])]
 
@@ -289,13 +289,13 @@ def P3D131(**kwargs):
     return model
 
 
-def P3D199(pretrained=False, modality='RGB', **kwargs):
+def P3D199(weights_path, pretrained=False, modality='RGB', **kwargs):
     """construct a P3D199 model based on a ResNet-152-3D model.
     """
     model = P3D(Bottleneck, [3, 8, 36, 3], modality=modality, **kwargs)
     if pretrained == True:
         if modality == 'RGB':
-            pretrained_file = '/delorean/fzappardino/PycharmProjects/MyPytorchProject/Models/p3d_rgb_199.checkpoint.pth.tar'
+            pretrained_file = weights_path
         elif modality == 'Flow':
             pretrained_file = 'p3d_flow_199.checkpoint.pth.tar'
         weights = torch.load(pretrained_file)['state_dict']
@@ -379,10 +379,11 @@ def get_optim_policies(model=None, modality='RGB', enable_pbn=True):
 
 
 if __name__ == '__main__':
-    model = P3D199(pretrained=True, num_classes=400)
+    weights_path = '/work/code/Weights/p3d_rgb_199.checkpoint.pth.tar'
+    model = P3D199(pretrained=True, num_classes=400, weights_path=weights_path)
     model = model.cuda().eval()
     print(model)
     data = torch.autograd.Variable(
-        torch.rand(1, 3, 10, 160, 160)).cuda()  # if modality=='Flow', please change the 2nd dimension 3==>2
+        torch.rand(1, 3, 10, 512, 512)).cuda()  # if modality=='Flow', please change the 2nd dimension 3==>2
     out = model(data)
     print(out.size(), out)

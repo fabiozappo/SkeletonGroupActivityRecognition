@@ -11,7 +11,7 @@ video_folder = '/work/data_and_extra/volleyball_dataset/videos'
 activity_list = ['r_set', 'r_spike', 'r-pass', 'r_winpoint', 'l_winpoint', 'l-pass', 'l-spike', 'l_set']
 action_list = ['waiting', 'setting', 'digging', 'falling', 'spiking', 'blocking', 'jumping', 'moving', 'standing']
 max_num_players = 12
-num_frames = 10
+num_frames = 16
 bbox_margin_gain = 0.02
 
 
@@ -32,8 +32,8 @@ def get_persons():
                 # img_list = sorted(glob.glob(os.path.join(video_folder, video_match, frame_id, "*.jpg")))[16:26]
                 img_list = glob.glob(os.path.join(video_folder, video_match, frame_id, "*.jpg"))
                 img_list = sorted(img_list, key=lambda x: int(x.split('/')[-1].split('.')[0]))[20 - int((num_frames - 1) / 2):21 + int(np.ceil(float(num_frames - 1) / 2.0))]
-                imgs['pre'] = img_list[:5][::-1]
-                imgs['back'] = img_list[4:]
+                imgs['pre'] = img_list[:8][::-1]
+                imgs['back'] = img_list[7:]
 
                 assert len(
                     rects) <= max_num_players, 'TROVATO FRAME CON PIU DI 12 PERSONE'  # NB non tutti i frame annotati hanno 12 bb
