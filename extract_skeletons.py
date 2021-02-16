@@ -9,7 +9,7 @@ import os
 
 # Flags
 parser = argparse.ArgumentParser()
-parser.add_argument("--image_dir", default="/work/code/Datasets/tracked_persons/",
+parser.add_argument("--image_dir", default="/work/data_and_extra/volleyball_dataset/tracked_persons/",
                     help="Process a directory of images. Read all standard formats (jpg, png, bmp, etc.).")
 parser.add_argument("--save_skeletons", action='store_true', help="Enable to save skeletons.")
 parser.add_argument("--no_display", action='store_true', help="Enable to disable the visual display.")

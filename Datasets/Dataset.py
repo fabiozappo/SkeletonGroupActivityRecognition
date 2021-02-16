@@ -15,11 +15,10 @@ hasToUseAbsoluteCoordinates = False  # todo: forse sarebbe piu opportuno chiamar
 hasToShowDistances, person_to_show_dist = False, 0
 
 # Trainval and test list
-# trainval_and_test_dicts = {'trainval': [0, 1, 2, 3, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 22, 23, 24, 26, 27, 28, 30, 31, 32, 33, 36, 38, 39, 40, 41, 42, 46, 48, 49, 50, 51, 52, 53, 54],
-                           # 'test': [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
-                           # 'test': [4, 5, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
-trainval_and_test_dicts = {'trainval': [13],
-                           'test': [23]}
+trainval_and_test_dicts = {'trainval': [0, 1, 2, 3, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 22, 23, 24, 26, 27, 28, 30, 31, 32, 33, 36, 38, 39, 40, 41, 42, 46, 48, 49, 50, 51, 52, 53, 54],
+                           'test': [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
+# trainval_and_test_dicts = {'trainval': [13],
+#                            'test': [23]}
 
 action_list = ['waiting', 'setting', 'digging', 'falling', 'spiking', 'blocking', 'jumping', 'moving', 'standing']
 activity_list = ['r_set', 'r_spike', 'r-pass', 'r_winpoint', 'l_winpoint', 'l-pass', 'l-spike', 'l_set']
@@ -211,7 +210,7 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
         match_path = os.path.join(skeletons_path, str(match_folder))
         # print('loading jsons of match:', match_path)
 
-        for seq_folder in os.listdir(match_path)[:3]:  # jsons/0/3596
+        for seq_folder in os.listdir(match_path):  # jsons/0/3596
             seq_path = os.path.join(match_path, seq_folder)
             main_frame_path = os.path.join(seq_path, seq_folder)  # jsons/0/3596/3596
 
@@ -250,15 +249,15 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
             if not group_spatio_temporal_feature.any():
                 print ('found an empty group on seq', seq_path)
 
-            if Config.has_to_erase_feet_and_head:
+            if Config.has_to_erase_feet_and_head:  # todo: move in get item
                 group_spatio_temporal_feature = erase_feet_and_head(group_spatio_temporal_feature)
                 flipped_group_spatio_temporal_feature = erase_feet_and_head(flipped_group_spatio_temporal_feature)
-            if Config.has_to_apply_smoothing:
+            if Config.has_to_apply_smoothing:  # todo: move in get item
                 group_spatio_temporal_feature = compute_smoothed_skeletons(group_spatio_temporal_feature)
                 flipped_group_spatio_temporal_feature = compute_smoothed_skeletons(
                     flipped_group_spatio_temporal_feature)
 
-            if Config.has_to_compute_group_features_respect_to_pivot:  # quasi sempre a True altrimenti si rompe
+            if Config.has_to_compute_group_features_respect_to_pivot:  # todo: move in get item
                 pivot_index = compute_pivot_in_group(group_bboxes)
                 flipped_pivot_index = compute_pivot_in_group(flipped_group_bboxes)
                 movements_respect_to_pivot = compute_movements_respect_to_pivot_joint_joint_forNtuInput(
@@ -266,7 +265,7 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
                 flipped_movements_respect_to_pivot = compute_movements_respect_to_pivot_joint_joint_forNtuInput(
                     flipped_group_spatio_temporal_feature, flipped_group_bboxes, flipped_pivot_index, match_folder)
 
-            if Config.normalize_feature:
+            if Config.normalize_feature:   # todo: move in get item
                 group_spatio_temporal_feature = center_skeleton_in_midhip_and_divide_by_torso(group_spatio_temporal_feature)
                 flipped_group_spatio_temporal_feature = center_skeleton_in_midhip_and_divide_by_torso(flipped_group_spatio_temporal_feature)
 
@@ -304,18 +303,18 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
         'group_group_dynamic_features': group_group_dynamic_features,
         'group_images_path': group_images_path,
         'group_action_labels_list': group_action_labels_list,
-        'person_features_list': person_features_list,
-        'person_group_dynamic_features': person_group_dynamic_features,
-        'person_labels_list': person_labels_list,
+        'person_features_list': person_features_list,  # todo: accertarsi che sia inutile ctrl+shif+f
+        'person_group_dynamic_features': person_group_dynamic_features, # todo: accertarsi che sia inutile ctrl+shif+f
+        'person_labels_list': person_labels_list, # todo: accertarsi che sia inutile ctrl+shif+f
         'person_images_path': person_images_path,
 
-        'flipped_group_features_list': flipped_group_features_list,
-        'flipped_group_group_dynamic_features': flipped_group_group_dynamic_features,
-        'flipped_group_activity_labels_list': flipped_group_activity_labels_list,
-        'flipped_group_action_labels_list': flipped_group_action_labels_list,
-        'flipped_person_features_list': flipped_person_features_list,
-        'flipped_person_group_dynamic_features': flipped_person_group_dynamic_features,
-        'flipped_person_labels_list': flipped_person_labels_list,
+        'flipped_group_features_list': flipped_group_features_list,  # todo: move in get item
+        'flipped_group_group_dynamic_features': flipped_group_group_dynamic_features,  # todo: move in get item
+        'flipped_group_activity_labels_list': flipped_group_activity_labels_list,  # todo: move in get item
+        'flipped_group_action_labels_list': flipped_group_action_labels_list,  # todo: accertarsi che sia inutile ctrl+shif+f
+        'flipped_person_features_list': flipped_person_features_list,  # todo: accertarsi che sia inutile ctrl+shif+f
+        'flipped_person_group_dynamic_features': flipped_person_group_dynamic_features, # todo: accertarsi che sia inutile ctrl+shif+f
+        'flipped_person_labels_list': flipped_person_labels_list,  # todo: accertarsi che sia inutile ctrl+shif+f
 
     }
 

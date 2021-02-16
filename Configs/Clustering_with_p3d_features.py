@@ -31,7 +31,7 @@ def compute_labels_try_try(mode, kmeans, pca_features): # versione dove si intro
     # print 'unsupervised_labels of {} has shape {}, minimum value of {} and {}'.format(mode, unsupervised_labels.shape, min(unsupervised_labels), max(unsupervised_labels))
     # return torch.from_numpy(unsupervised_labels).long() # commented to return a list for easier action padding
     # print list(unsupervised_labels)
-    return list(unsupervised_labels.astype(long))
+    return list(unsupervised_labels.astype(int))
 
 def get_P3D_model(weights_path):
     print ('Loading P3D model...')
@@ -90,10 +90,9 @@ def compute_visual_features(mode, weights_path=None, images_paths=None):
                 path_list[-2] = frame_folder_number
 
                 root = '/'.join(path_list[:-1])
-                image_path = glob.glob(root + f'/{actor_id}_*.jpg')[0]
-                print(image_path)
 
-                # print '{} frame of clip. loading {}'.format(t, image_path)
+                image_path = glob.glob(root + f'/{actor_id}_*.jpg')[0]
+
                 input_image = Image.open(image_path)
                 input_tensor = preprocess(input_image)
                 input_batch = input_tensor.unsqueeze(0)
@@ -104,13 +103,11 @@ def compute_visual_features(mode, weights_path=None, images_paths=None):
             with torch.no_grad():
                 visual_features[f, :] = model(clip)
 
-            print ('Computing feature {}/{}, it will be saved at {} '.format(f, num_features, filename))
-
         visual_features = visual_features.numpy()
         np.save(filename, visual_features)
 
-
     return visual_features
+
 
 def train_kmeans(X):
     wcss = []
@@ -131,7 +128,6 @@ def train_kmeans(X):
     plt.ylabel('WCSS')
     plt.show()
     # plt.savefig('/delorean/fzappardino/elbow_method_kmeans')
-
 
     val, idx = min((val, idx) for (idx, val) in enumerate(wcss))
     print ('minimum mean_squared_error = {} for k* = {} '.format(val, idx+my_range[0]))
