@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from Datasets import Dataset
-from Configs import Config, Deep_Clustering_Unsupervised_Learning, Clustering_with_p3d_features
+from Configs import Config, Clustering_with_p3d_features
 
 from Models.GarSkeletonModel import GarSkeletonModel
 

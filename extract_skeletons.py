@@ -15,6 +15,11 @@ parser.add_argument("--save_skeletons", action='store_true', help="Enable to sav
 parser.add_argument("--no_display", action='store_true', help="Enable to disable the visual display.")
 args = parser.parse_args()
 
+def frame_is_in_clip(frame_path):
+    central_frame = int(frame_path.split('/')[-3])
+    frame = int(frame_path.split('/')[-2])
+    return central_frame-4 <= frame <= central_frame+5
+
 # Custom Params (refer to include/openpose/flags.hpp for more parameters)
 params = dict()
 params["model_folder"] = "/openpose/models/"
@@ -27,7 +32,8 @@ opWrapper.configure(params)
 opWrapper.start()
 
 # Read frames on directory
-imagePaths = glob.glob(args.image_dir + '/**/**/**/*.jpg')
+imagePaths = glob.glob(args.image_dir + '/9/**/**/*.jpg')
+imagePaths = [f for f in imagePaths if frame_is_in_clip(f)]
 
 # Process and display images
 for imagePath in tqdm(imagePaths):

@@ -6,13 +6,11 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 import torch
 from scipy import ndimage
-from Configs import Config, Deep_Clustering_Unsupervised_Learning, Clustering_with_p3d_features
+from Configs import Config, Clustering_with_p3d_features
 from sklearn.metrics.cluster import normalized_mutual_info_score
 import glob
 from tqdm import tqdm
 
-hasToUseAbsoluteCoordinates = False  # todo: forse sarebbe piu opportuno chiamarlo hasToShowAbsoluteSkeletons?
-hasToShowDistances, person_to_show_dist = False, 0
 
 # Trainval and test list
 trainval_and_test_dicts = {'trainval': [0, 1, 2, 3, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 22, 23, 24, 26, 27, 28, 30, 31, 32, 33, 36, 38, 39, 40, 41, 42, 46, 48, 49, 50, 51, 52, 53, 54],
@@ -187,14 +185,8 @@ def compute_movements_respect_to_pivot_joint_joint_forNtuInput(group_spatio_temp
 
 def initialize_group_feature_and_label_list(mode, skeletons_path):
     # Lists to return
-    person_features_list = []
-    person_labels_list = []
-    person_group_dynamic_features = []  # lista di differenze di scheletri 15 x 2 x 10
     person_images_path = []  # each element is a 10 len image-path representing a single tube for an actor
 
-    flipped_person_features_list = []
-    flipped_person_group_dynamic_features = []
-    flipped_person_labels_list = []
     flipped_group_features_list = []
     flipped_group_group_dynamic_features = []
     flipped_group_activity_labels_list = []
@@ -204,7 +196,6 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
     group_action_labels_list = []
     group_activity_labels_list = []
     group_group_dynamic_features = []  # lista di differenze di scheletri n x 15 x 2 x 10
-    group_images_path = []  # contiene n, 10 stringhe image-path, un blocco = una sequenza, potrebbe servire????
 
     for match_folder in tqdm(trainval_and_test_dicts[mode]):  # jsons/0
         match_path = os.path.join(skeletons_path, str(match_folder))
@@ -223,14 +214,12 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
             group_paths = np.empty((number_of_actors, 10), dtype=object)
 
             # To display Info
-            group_frames = []  # contiene i tubi degli attori (lista di liste di frames)
             group_actions = []  # contiene le n azioni degli attori, rilevante solo per display
 
             # Sorting actors by x position is relevant for concatenate them, and no relevant for maxpooling
             for p, jf_main in enumerate(sorted(os.listdir(main_frame_path), key=lambda x: int(x.split('_')[0]))):  # jsons/0/3596/3596/0_3596_8_2_keypoints.json
                 main_frame_folder = main_frame_path.split('/')[-2]
                 person_index, top, left, bottom, right, action_label, activity_label = jf_main.split('.')[0].split('_')
-                person_frames = []  # tubo dell'attore p
 
                 for t in range(-4, 6):  # jsons/0/3596/3592/0_3596_8_2_keypoints.json
                     frame_folder = str(int(main_frame_folder) + t)
@@ -241,8 +230,6 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
                     group_paths[p, t + 4] = recover_imgpath_from_jsonpath(jf_path)
 
                 group_actions.append(int(action_label))
-                if not hasToUseAbsoluteCoordinates:
-                    group_frames.append(person_frames)
 
                 flipped_activity_label = 7 - int(activity_label)
             # tutti gli scheletri del gruppo sono pronti
@@ -271,26 +258,12 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
 
             # Create also the person dataset
             for p in range(number_of_actors):
-                person_spatio_temporal_feature = group_spatio_temporal_feature[p, :, :, :]
-                flipped_person_spatio_temporal_feature = flipped_group_spatio_temporal_feature[p, :, :, :]
-                person_spatio_temporal_feature = torch.from_numpy(
-                    person_spatio_temporal_feature.transpose(1, 0, 2)).float()
-                flipped_person_spatio_temporal_feature = torch.from_numpy(
-                    flipped_person_spatio_temporal_feature.transpose(1, 0, 2)).float()
-                person_features_list.append(person_spatio_temporal_feature)
-                flipped_person_features_list.append(flipped_person_spatio_temporal_feature)
-                person_group_dynamic_features.append(torch.from_numpy(movements_respect_to_pivot[p, :, :]).float())
-                flipped_person_group_dynamic_features.append(
-                    torch.from_numpy(flipped_movements_respect_to_pivot[p, :, :]).float())
                 person_images_path.append(group_paths[p, :])
-            person_labels_list = person_labels_list + group_actions
-            flipped_person_labels_list = flipped_person_labels_list + group_actions
 
             group_features_list.append(torch.from_numpy(group_spatio_temporal_feature.transpose(0, 2, 1, 3)).float())
             flipped_group_features_list.append(torch.from_numpy(flipped_group_spatio_temporal_feature.transpose(0, 2, 1, 3)).float())
             group_group_dynamic_features.append(torch.from_numpy(movements_respect_to_pivot).float())
             flipped_group_group_dynamic_features.append(torch.from_numpy(flipped_movements_respect_to_pivot).float())
-            group_images_path.append(group_paths)
 
             group_activity_labels_list.append(int(activity_label))
             flipped_group_activity_labels_list.append(int(flipped_activity_label))
@@ -301,31 +274,18 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
         'group_features_list': group_features_list,
         'group_activity_labels_list': group_activity_labels_list,
         'group_group_dynamic_features': group_group_dynamic_features,
-        'group_images_path': group_images_path,
         'group_action_labels_list': group_action_labels_list,
-        'person_features_list': person_features_list,  # todo: accertarsi che sia inutile ctrl+shif+f
-        'person_group_dynamic_features': person_group_dynamic_features, # todo: accertarsi che sia inutile ctrl+shif+f
-        'person_labels_list': person_labels_list, # todo: accertarsi che sia inutile ctrl+shif+f
         'person_images_path': person_images_path,
 
         'flipped_group_features_list': flipped_group_features_list,  # todo: move in get item
         'flipped_group_group_dynamic_features': flipped_group_group_dynamic_features,  # todo: move in get item
         'flipped_group_activity_labels_list': flipped_group_activity_labels_list,  # todo: move in get item
-        'flipped_group_action_labels_list': flipped_group_action_labels_list,  # todo: accertarsi che sia inutile ctrl+shif+f
-        'flipped_person_features_list': flipped_person_features_list,  # todo: accertarsi che sia inutile ctrl+shif+f
-        'flipped_person_group_dynamic_features': flipped_person_group_dynamic_features, # todo: accertarsi che sia inutile ctrl+shif+f
-        'flipped_person_labels_list': flipped_person_labels_list,  # todo: accertarsi che sia inutile ctrl+shif+f
+        'flipped_group_action_labels_list': flipped_group_action_labels_list,
 
     }
 
     print('person_clip has len: {}'.format(len(person_images_path)))
-    print('person_features_list has len: {}, flipped has len: {}'.format(len(person_features_list),
-                                                                         len(flipped_person_features_list)))
-    print('person_group_dynamic_features has len: {}, flipped has len: {}'.format(len(person_group_dynamic_features),
-                                                                                  len(
-                                                                                      flipped_person_group_dynamic_features)))
-    print('person_labels_list has len: {}, flipped has len: {}'.format(len(person_labels_list),
-                                                                       len(flipped_person_labels_list)))
+
     print('group_features_list has len: {}, flipped has len: {}'.format(len(group_features_list),
                                                                         len(flipped_group_features_list)))
     print('group_group_dynamic_features has len: {}, flipped has len: {}'.format(len(group_group_dynamic_features), len(
@@ -378,11 +338,9 @@ class GroupFeatures(Dataset):
         if Config.use_pseudo_labels and Config.use_double_loss_model:
             unsupervised_labels = Clustering_with_p3d_features.compute_labels_try_try(mode, kmeans_trained,
                                                                                       pca_features)  # Clusterizza le features, che siano Vgg16 o P3D clustering
-            # unsupervised_labels = unsupervised_labels[: (1783 if mode == 'trainval' else 1275)] # todo: remove after testing
             if mode == 'trainval':
                 unsupervised_labels = unsupervised_labels * 2  # todo: just for data augmentation!
 
-            # print 'phase: {}, nmi value: {}'.format(mode, normalized_mutual_info_score(features[mode]['person_labels_list'], unsupervised_labels, average_method='geometric'))
             self.pseudo_action_labels_list = []
             start_index = 0
             for actor_actions in self.action_labels_list:
