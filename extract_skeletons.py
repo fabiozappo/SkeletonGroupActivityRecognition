@@ -32,7 +32,7 @@ opWrapper.configure(params)
 opWrapper.start()
 
 # Read frames on directory
-imagePaths = glob.glob(args.image_dir + '/9/**/**/*.jpg')
+imagePaths = glob.glob(args.image_dir + '/**/**/**/*.jpg')
 imagePaths = [f for f in imagePaths if frame_is_in_clip(f)]
 
 # Process and display images
