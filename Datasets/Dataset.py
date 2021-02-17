@@ -151,7 +151,7 @@ def bb_intersection_over_union(boxA, boxB):
     return iou
 
 
-def compute_movements_respect_to_pivot_joint_joint_forNtuInput(group_spatio_temporal_feature, group_bboxes, pivot_index, match):  # todo: prova per return di un vettore 15x10
+def compute_pivot_distances(group_spatio_temporal_feature, group_bboxes, pivot_index, match):  # todo: prova per return di un vettore 15x10
     # tre casi: uno, due o nessun joint mancante ----> differenza delle box, differenza bb,  e differenza normale. Il pivot viene contato come tutti zeri!
     shape = group_spatio_temporal_feature.shape
     movements = np.zeros((shape[0], 15, 2, shape[3]))  # group movements represented as array of size (n, 225, 10)
@@ -180,7 +180,7 @@ def compute_movements_respect_to_pivot_joint_joint_forNtuInput(group_spatio_temp
                     frame_dim = [1280, 720]
                 movements[p, j1, :, t] = distance_vector / frame_dim
 
-    return movements.transpose(0, 2, 1, 3)  # NTU net requires joint coordinates in channel dim
+    return movements  # NTU net requires joint coordinates in channel dim
 
 
 def initialize_group_feature_and_label_list(mode, skeletons_path):
@@ -196,6 +196,8 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
     group_action_labels_list = []
     group_activity_labels_list = []
     group_group_dynamic_features = []  # lista di differenze di scheletri n x 15 x 2 x 10
+    group_boxes = []
+    match_folders = []
 
     for match_folder in tqdm(trainval_and_test_dicts[mode]):  # jsons/0
         match_path = os.path.join(skeletons_path, str(match_folder))
@@ -208,9 +210,9 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
             number_of_actors = len(os.listdir(main_frame_path))
             # Group level info
             group_spatio_temporal_feature = np.zeros((number_of_actors, 25, 3, 10))
-            flipped_group_spatio_temporal_feature = np.zeros((number_of_actors, 25, 3, 10))
-            group_bboxes = np.zeros((number_of_actors, 4, 10))
-            flipped_group_bboxes = np.zeros((number_of_actors, 4, 10))
+            # flipped_group_spatio_temporal_feature = np.zeros((number_of_actors, 25, 3, 10))
+            group_bb = np.zeros((number_of_actors, 4, 10))
+            # flipped_group_bboxes = np.zeros((number_of_actors, 4, 10))
             group_paths = np.empty((number_of_actors, 10), dtype=object)
 
             # To display Info
@@ -225,50 +227,52 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
                     frame_folder = str(int(main_frame_folder) + t)
                     jf = person_index + '_*.npy'
                     jf_path = glob.glob(os.path.join(seq_path, frame_folder, jf))[0]
-                    group_spatio_temporal_feature[p, :, :, t + 4], group_bboxes[p, :, t + 4] = compute_descriptor_from_json_keypoints(jf_path)
-                    flipped_group_spatio_temporal_feature[p, :, :, t + 4], flipped_group_bboxes[p, :, t + 4] = flip_horizontally(group_spatio_temporal_feature[p, :, :, t + 4], group_bboxes[p, :, t + 4], match_folder)
+                    group_spatio_temporal_feature[p, :, :, t + 4], group_bb[p, :, t + 4] = compute_descriptor_from_json_keypoints(jf_path)
+                    # flipped_group_spatio_temporal_feature[p, :, :, t + 4], flipped_group_bboxes[p, :, t + 4] = flip_horizontally(group_spatio_temporal_feature[p, :, :, t + 4], group_bb[p, :, t + 4], match_folder)
                     group_paths[p, t + 4] = recover_imgpath_from_jsonpath(jf_path)
 
                 group_actions.append(int(action_label))
 
-                flipped_activity_label = 7 - int(activity_label)
+                # flipped_activity_label = 7 - int(activity_label)
             # tutti gli scheletri del gruppo sono pronti
             if not group_spatio_temporal_feature.any():
                 print ('found an empty group on seq', seq_path)
 
-            if Config.has_to_erase_feet_and_head:  # todo: move in get item
+            if Config.has_to_erase_feet_and_head:
                 group_spatio_temporal_feature = erase_feet_and_head(group_spatio_temporal_feature)
-                flipped_group_spatio_temporal_feature = erase_feet_and_head(flipped_group_spatio_temporal_feature)
-            if Config.has_to_apply_smoothing:  # todo: move in get item
+                # flipped_group_spatio_temporal_feature = erase_feet_and_head(flipped_group_spatio_temporal_feature)
+            if Config.has_to_apply_smoothing:
                 group_spatio_temporal_feature = compute_smoothed_skeletons(group_spatio_temporal_feature)
-                flipped_group_spatio_temporal_feature = compute_smoothed_skeletons(
-                    flipped_group_spatio_temporal_feature)
+                # flipped_group_spatio_temporal_feature = compute_smoothed_skeletons(
+                #     flipped_group_spatio_temporal_feature)
 
-            if Config.has_to_compute_group_features_respect_to_pivot:  # todo: move in get item
-                pivot_index = compute_pivot_in_group(group_bboxes)
-                flipped_pivot_index = compute_pivot_in_group(flipped_group_bboxes)
-                movements_respect_to_pivot = compute_movements_respect_to_pivot_joint_joint_forNtuInput(
-                    group_spatio_temporal_feature, group_bboxes, pivot_index, match_folder)
-                flipped_movements_respect_to_pivot = compute_movements_respect_to_pivot_joint_joint_forNtuInput(
-                    flipped_group_spatio_temporal_feature, flipped_group_bboxes, flipped_pivot_index, match_folder)
+            # if Config.has_to_compute_group_features_respect_to_pivot:  # todo: move in get item
+            #     pivot_index = compute_pivot_in_group(group_bb)
+                # flipped_pivot_index = compute_pivot_in_group(flipped_group_bboxes)
+                # movements_respect_to_pivot = compute_pivot_distances(
+                #     group_spatio_temporal_feature, group_bb, pivot_index, match_folder)
+                # flipped_movements_respect_to_pivot = compute_movements_respect_to_pivot_joint_joint_forNtuInput(
+                #     flipped_group_spatio_temporal_feature, flipped_group_bboxes, flipped_pivot_index, match_folder)
 
             if Config.normalize_feature:   # todo: move in get item
                 group_spatio_temporal_feature = center_skeleton_in_midhip_and_divide_by_torso(group_spatio_temporal_feature)
-                flipped_group_spatio_temporal_feature = center_skeleton_in_midhip_and_divide_by_torso(flipped_group_spatio_temporal_feature)
+                # flipped_group_spatio_temporal_feature = center_skeleton_in_midhip_and_divide_by_torso(flipped_group_spatio_temporal_feature)
 
             # Create also the person dataset
             for p in range(number_of_actors):
                 person_images_path.append(group_paths[p, :])
 
-            group_features_list.append(torch.from_numpy(group_spatio_temporal_feature.transpose(0, 2, 1, 3)).float())
-            flipped_group_features_list.append(torch.from_numpy(flipped_group_spatio_temporal_feature.transpose(0, 2, 1, 3)).float())
-            group_group_dynamic_features.append(torch.from_numpy(movements_respect_to_pivot).float())
-            flipped_group_group_dynamic_features.append(torch.from_numpy(flipped_movements_respect_to_pivot).float())
+            group_features_list.append(group_spatio_temporal_feature)
+            # flipped_group_features_list.append(torch.from_numpy(flipped_group_spatio_temporal_feature.transpose(0, 2, 1, 3)).float())
+            # group_group_dynamic_features.append(movements_respect_to_pivot)
+            # flipped_group_group_dynamic_features.append(torch.from_numpy(flipped_movements_respect_to_pivot).float())
 
             group_activity_labels_list.append(int(activity_label))
-            flipped_group_activity_labels_list.append(int(flipped_activity_label))
+            # flipped_group_activity_labels_list.append(int(flipped_activity_label))
             group_action_labels_list.append(group_actions)
-            flipped_group_action_labels_list.append(group_actions)
+            # flipped_group_action_labels_list.append(group_actions)
+            group_boxes.append(group_bb)
+            match_folders.append(match_folder)
 
     dict = {
         'group_features_list': group_features_list,
@@ -276,6 +280,8 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
         'group_group_dynamic_features': group_group_dynamic_features,
         'group_action_labels_list': group_action_labels_list,
         'person_images_path': person_images_path,
+        'group_boxes': group_boxes,
+        'match_folders': match_folders,
 
         'flipped_group_features_list': flipped_group_features_list,  # todo: move in get item
         'flipped_group_group_dynamic_features': flipped_group_group_dynamic_features,  # todo: move in get item
@@ -298,11 +304,24 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
     return dict
 
 
+def get_pseudo_labels(mode, kmeans_trained, pca_features):
+    pseudo_labels = Clustering_with_p3d_features.compute_labels_try_try(mode, kmeans_trained, pca_features)
+    pseudo_action_labels_list = []
+    start_index = 0
+    for actor_actions in self.action_labels:
+        num_actors = len(actor_actions)
+        pseudo_action_labels_list.append(pseudo_labels[start_index:start_index + num_actors])
+        start_index += num_actors
+    return pseudo_action_labels_list
+
+def nan_or_inf(tensor):
+    return torch.isnan(tensor).any() or tensor.eq(float('inf')).any() or tensor.eq(float('-inf')).any()
+
 # Inizializzazione comune delle features
 since = time.time()
 features = {phase: initialize_group_feature_and_label_list(phase, skeletons_path) for phase in ['trainval', 'test']}
-visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase, weights_path=weights_path,
-                   images_paths=features[phase]['person_images_path']) for phase in ['trainval', 'test']}
+# visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase, weights_path=weights_path,
+#                    images_paths=features[phase]['person_images_path']) for phase in ['trainval', 'test']}
 
 print('time elapsed in creating groups features dataset:', time.time() - since)
 
@@ -310,74 +329,63 @@ print('time elapsed in creating groups features dataset:', time.time() - since)
 
 class GroupFeatures(Dataset):
 
-    def __init__(self, mode, skeletons_path=None, pose_and_motion_model=None, distances_model=None, kmeans_trained=None,
-                 pca_features=None):
+    def __init__(self, mode, kmeans_trained=None, pca_features=None):
         if mode not in ['trainval', 'test']:
             raise ValueError("Invalid mode type. Expected one trainval or test")
-        self.model = pose_and_motion_model  # per adesso si lascia su cpu
-        if mode == 'trainval':
-            self.group_features_list = features[mode]['group_features_list'] + features[mode][
-                'flipped_group_features_list']
-            self.labels_list = features[mode]['group_activity_labels_list'] + features[mode][
-                'flipped_group_activity_labels_list']
-            self.distance_features = features[mode]['group_group_dynamic_features'] + features[mode][
-                'flipped_group_group_dynamic_features']
-            self.action_labels_list = features[mode]['group_action_labels_list'] + features[mode][
-                'flipped_group_action_labels_list']
-        else:
-            self.group_features_list = features[mode]['group_features_list']
-            self.labels_list = features[mode]['group_activity_labels_list']
-            self.distance_features = features[mode]['group_group_dynamic_features']
-            self.action_labels_list = features[mode]['group_action_labels_list']
 
-        self.num_actors = sum([len(action_labels) for action_labels in self.action_labels_list])
-        self.model_internal_feature_list = []
-        self.person_clips = features[mode]['person_images_path']
-        # self.action_labels_list = [torch.randint(low=0, high=9, size=(12,)) for group_features in self.group_features_list]  # todo: remove random initialization
+        self.augment = mode == 'trainval'
+        self.pseudo_labels = Config.use_pseudo_labels
 
-        if Config.use_pseudo_labels and Config.use_double_loss_model:
-            unsupervised_labels = Clustering_with_p3d_features.compute_labels_try_try(mode, kmeans_trained,
-                                                                                      pca_features)  # Clusterizza le features, che siano Vgg16 o P3D clustering
-            if mode == 'trainval':
-                unsupervised_labels = unsupervised_labels * 2  # todo: just for data augmentation!
+        self.group_features_list = features[mode]['group_features_list']
+        self.labels_list = features[mode]['group_activity_labels_list']
+        self.action_labels = get_pseudo_labels(mode, kmeans_trained, pca_features) if self.pseudo_labels else features[mode]['group_action_labels_list']
+        self.person_clips = features[mode]['person_images_path'] # todo serve nel dataset?
+        self.num_actors = sum([len(action_labels) for action_labels in self.action_labels])
+        self.group_boxes = features[mode]['group_boxes']
+        self.match_folders = features[mode]['match_folders'] # todo: magari qualcosa di piu decente?
 
-            self.pseudo_action_labels_list = []
-            start_index = 0
-            for actor_actions in self.action_labels_list:
-                num_actors = len(actor_actions)
-                self.pseudo_action_labels_list.append(unsupervised_labels[start_index:start_index + num_actors])
-                # print 'pseudo_action_labels_list has len {} and last item has {} labels'.format(len(self.pseudo_action_labels_list), len(self.pseudo_action_labels_list[-1]))
-                start_index += num_actors
+        # self.distance_features = features[mode]['group_group_dynamic_features']
 
     def __getitem__(self, index):
-        if not Config.use_end_to_end_model:
-            return self.model_internal_feature_list[index] if self.model else self.group_features_list[index], \
-                   self.labels_list[index]
-        else:  # use end to end model, just groups, padded teams
-            max_num_actors_in_scene = 12
-            num_actors = self.group_features_list[index].size()[0]
-            padded_group_skeleton = torch.zeros([max_num_actors_in_scene, 3, 15, 10], dtype=torch.float)
-            padded_group_skeleton[:num_actors, :, :, :] = self.group_features_list[index]
-            padded_group_distances = torch.zeros([max_num_actors_in_scene, 2, 15, 10], dtype=torch.float)
-            padded_group_distances[:num_actors, :, :, :] = self.distance_features[index]
-            padded_group_action_labels = np.array(self.action_labels_list[index][:num_actors] + [-1] * (
-                        max_num_actors_in_scene - len(self.action_labels_list[index])), dtype=int)
-            if Config.use_pseudo_labels:
-                padded_pseudo_group_action_labels = np.array(
-                    self.pseudo_action_labels_list[index][:num_actors] + [-1] * (
-                                max_num_actors_in_scene - len(self.pseudo_action_labels_list[index])), dtype=int)
-                # print 'returning padded_pseudo_group_action_labels: ', padded_pseudo_group_action_labels
-            if Config.use_double_loss_model:
-                assert not (torch.isnan(padded_group_skeleton).any() or padded_group_skeleton.eq(
-                    float('inf')).any() or padded_group_skeleton.eq(
-                    float('-inf')).any()), 'nan or inf value in padded_group_skeleton'
-                assert not (torch.isnan(padded_group_distances).any() or padded_group_distances.eq(
-                    float('inf')).any() or padded_group_distances.eq(
-                    float('-inf')).any()), 'nan or inf value in padded_group_distances'
-                return padded_group_skeleton, self.labels_list[
-                    index], padded_group_distances, num_actors, padded_group_action_labels if not Config.use_pseudo_labels else padded_pseudo_group_action_labels
-            else:
-                return padded_group_skeleton, self.labels_list[index], padded_group_distances
+
+        group_skeleton = self.group_features_list[index]
+        activity_label = self.labels_list[index]
+        group_bb = self.group_boxes[index]
+        match_folder = self.match_folders[index]
+        action_labels = self.action_labels[index]
+
+        if self.augment:
+            pass
+            # flip_group_skeleton (group_skeleton, match, bbox)
+            # flip_activity_label
+
+        pivot_index = compute_pivot_in_group(group_bb)
+        pivot_distances = compute_pivot_distances(group_skeleton, group_bb, pivot_index, match_folder)
+
+        group_skeleton = torch.from_numpy(group_skeleton.transpose(0, 2, 1, 3)).float()
+        pivot_distances = torch.from_numpy(pivot_distances.transpose(0, 2, 1, 3)).float()
+
+        max_actors = 12
+        num_actors = group_skeleton.size()[0]
+
+        padded_group_skeleton = torch.zeros([max_actors, 3, 15, 10], dtype=torch.float)
+        padded_group_skeleton[:num_actors, :, :, :] = group_skeleton
+        padded_group_distances = torch.zeros([max_actors, 2, 15, 10], dtype=torch.float)
+        padded_group_distances[:num_actors, :, :, :] = pivot_distances
+        padded_group_action_labels = np.array(action_labels[:num_actors] + [-1] * (max_actors - num_actors), dtype=int)
+
+        # todo la riga sopra dovrebbe bastare a gestire entrambe le casistiche
+        if Config.use_pseudo_labels:
+            padded_pseudo_group_action_labels = np.array(
+                self.pseudo_action_labels_list[index][:num_actors] + [-1] * (
+                            max_actors - len(self.pseudo_action_labels_list[index])), dtype=int)
+            # print 'returning padded_pseudo_group_action_labels: ', padded_pseudo_group_action_labels
+
+        assert not nan_or_inf(padded_group_skeleton), 'nan or inf value in padded_group_skeleton'
+        assert not nan_or_inf(padded_group_distances), 'nan or inf value in padded_group_distances'
+
+        # todo delete last condition in return after test
+        return padded_group_skeleton, activity_label, padded_group_distances, num_actors, padded_group_action_labels if not Config.use_pseudo_labels else padded_pseudo_group_action_labels
 
     def __len__(self):
         return len(self.labels_list)

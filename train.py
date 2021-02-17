@@ -166,14 +166,14 @@ if __name__ == "__main__":
     for i in range(num_runs_kmeans):
 
         for j, cluster in enumerate(range_clusters):
-            visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase)\
-                               for phase in ['trainval', 'test']}
-
-            pca_model = Clustering_with_p3d_features.fit_pca(256, visual_features)
-            pca_features = {phase: Clustering_with_p3d_features.compute_pca_features(phase, pca_model) for phase in ['trainval', 'test']}
-
+            # visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase)\
+            #                    for phase in ['trainval', 'test']}
+            #
+            # pca_model = Clustering_with_p3d_features.fit_pca(256, visual_features)
+            # pca_features = {phase: Clustering_with_p3d_features.compute_pca_features(phase, pca_model) for phase in ['trainval', 'test']}
+            #
             num_classes = cluster if Config.use_pseudo_labels else Config.num_action_classes
-            kmeans_trained = Clustering_with_p3d_features.fit_kmeans(cluster, pca_features)
+            # kmeans_trained = Clustering_with_p3d_features.fit_kmeans(cluster, pca_features)
 
             # Create training and validation datasets
             group_datasets = {
