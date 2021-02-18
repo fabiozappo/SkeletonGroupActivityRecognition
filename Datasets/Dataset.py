@@ -1,4 +1,5 @@
 import json
+import random
 import os
 import time
 import cv2
@@ -75,19 +76,37 @@ def flip_horizontally(person_skeleton, person_bbox, match):
         flipped_bbox[[2, 0]] = [1280, 1280] - person_bbox[[0, 2]]
 
     for i in range(person_skeleton.shape[0]):
+        # if joint is detected
         if person_skeleton[i, :].any():
-            flipped_skeleton[i, 0] = (person_skeleton[i, 0] - (person_bbox[2] - person_bbox[0]) / 2.0) * (-1.0) + (
-                    (person_bbox[2] - person_bbox[
-                        0]) / 2.0)  # todo: provare semplicemente: person_skeleton[i, 0] = (person_bbox[2] - person_bbox[0]) - person_skeleton[i, 0]
+            flipped_skeleton[i, 0] = (person_skeleton[i, 0] - (person_bbox[2] - person_bbox[0]) / 2.0) * (-1.0) + \
+                                     ((person_bbox[2] - person_bbox[0]) / 2.0)  # todo: provare semplicemente: person_skeleton[i, 0] = (person_bbox[2] - person_bbox[0]) - person_skeleton[i, 0]
 
     return flipped_skeleton, flipped_bbox
+
+
+def flip_group_horizontally(group_spatio_temporal_feature, group_temporal_bbox, match):
+
+    for p in range(group_spatio_temporal_feature.shape[0]):
+        for t in range(group_spatio_temporal_feature.shape[3]):
+
+            person_skeleton = group_spatio_temporal_feature[p, :, :, t]
+            person_bbox = group_temporal_bbox[p, :, t]
+
+            frame_w = 1920 if match in [2, 37, 38, 39, 40, 41, 44, 45] else 1280
+            person_bbox[[1, 3]] = frame_w - person_bbox[[3, 1]]
+
+            w = person_bbox[3] - person_bbox[1]
+            valid_joints = np.all(person_skeleton, axis=1)
+            person_skeleton[valid_joints, 0] =  w - person_skeleton[valid_joints, 0]
+
+    return group_spatio_temporal_feature, group_temporal_bbox
 
 
 def erase_feet_and_head(group_feature):
     return np.delete(group_feature, [15, 16, 17, 18, 19, 20, 21, 22, 23, 24], axis=1)
 
 
-def compute_descriptor_from_json_keypoints(j_p):  # todo: dovrebbe restituire numpy_array e bb
+def compute_descriptor_from_json_keypoints(j_p):
 
     person_index, top, left, bottom, right, action_label, activity_label = j_p.split('/')[-1].split('.')[0].split('_')
     person_skeleton = np.load(j_p)
@@ -300,7 +319,6 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
                                                                              len(flipped_group_action_labels_list)))
     print('group_activity_labels_list has len: {}, flipped has len: {}'.format(len(group_activity_labels_list),
                                                                                len(flipped_group_activity_labels_list)))
-
     return dict
 
 
@@ -329,11 +347,11 @@ print('time elapsed in creating groups features dataset:', time.time() - since)
 
 class GroupFeatures(Dataset):
 
-    def __init__(self, mode, kmeans_trained=None, pca_features=None):
+    def __init__(self, mode, kmeans_trained=None, pca_features=None, augment=False):
         if mode not in ['trainval', 'test']:
             raise ValueError("Invalid mode type. Expected one trainval or test")
 
-        self.augment = mode == 'trainval'
+        self.augment = mode == 'trainval' and augment
         self.pseudo_labels = Config.use_pseudo_labels
 
         self.group_features_list = features[mode]['group_features_list']
@@ -355,9 +373,9 @@ class GroupFeatures(Dataset):
         action_labels = self.action_labels[index]
 
         if self.augment:
-            pass
-            # flip_group_skeleton (group_skeleton, match, bbox)
-            # flip_activity_label
+            if random.random() < 0.5:
+                group_skeleton, group_bb = flip_group_horizontally(group_skeleton, group_bb, match_folder)
+                activity_label = 7 - int(activity_label)
 
         pivot_index = compute_pivot_in_group(group_bb)
         pivot_distances = compute_pivot_distances(group_skeleton, group_bb, pivot_index, match_folder)

@@ -1,5 +1,6 @@
 import copy
 import time
+import argparse
 
 import numpy as np
 
@@ -136,13 +137,17 @@ def train_model(model, dataloaders_dict, criterion_single, criterion_groups, opt
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--augment', action='store_true', help='use horizontal flip augmentation')
+    args = parser.parse_args()
+
     # Hyperparamters fixed, prima di modificare questi tocca a k-means features, rete e data augmentation
     # num_runs_kmeans = 5
     num_runs_kmeans = 1
-    range_clusters = [20]
+#    range_clusters = [20]
     p3d_weights = '/work/code/Weights/p3d_rgb_199.checkpoint.pth.tar'
 
-    # range_clusters = [5, 10, 20, 30, 40, 50, 60, 70]
+    range_clusters = [5, 10, 20, 30, 40, 50, 60, 70]
     batch_size = 64
 
     # Define double loss and balance factor
@@ -177,7 +182,7 @@ if __name__ == "__main__":
 
             # Create training and validation datasets
             group_datasets = {
-                phase: Dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features)
+                phase: Dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features, augment=args.augment)
                 for phase in ['trainval', 'test']}
 
             # Create training and test dataloaders
