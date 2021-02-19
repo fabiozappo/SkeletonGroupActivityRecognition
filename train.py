@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from Datasets import Dataset
-from Configs import Config, Clustering_with_p3d_features
+from Configs import Config, features_clustering
 
 from Models.GarSkeletonModel import GarSkeletonModel
 
@@ -138,17 +138,15 @@ def train_model(model, dataloaders_dict, criterion_single, criterion_groups, opt
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--pseudo_labels', action='store_true', help='cluster action labels from visual features')
+    parser.add_argument('--num_clusters', type=int, default=20, help='number of clusters')
     parser.add_argument('--augment', action='store_true', help='use horizontal flip augmentation')
+    parser.add_argument('--epochs', type=int, default=80, help='number of training epochs')
+    parser.add_argument('--batch_size', default=64, help='batch size dimension')
+    parser.add_argument('--workers', type=int, default=8, help='num_workers')
+    parser.add_argument('--loss_balancer', type=float, default=0.2, help='factor between individual and group loss')
+
     args = parser.parse_args()
-
-    # Hyperparamters fixed, prima di modificare questi tocca a k-means features, rete e data augmentation
-    # num_runs_kmeans = 5
-    num_runs_kmeans = 1
-#    range_clusters = [20]
-    p3d_weights = '/work/code/Weights/p3d_rgb_199.checkpoint.pth.tar'
-
-    range_clusters = [5, 10, 20, 30, 40, 50, 60, 70]
-    batch_size = 64
 
     # Define double loss and balance factor
     loss_factor = 0.2
@@ -159,58 +157,44 @@ if __name__ == "__main__":
     lr_decay = True
     epoch_decay = 30
 
-    acc_persons = np.zeros((num_runs_kmeans, len(range_clusters)))  # array zeros of shape 5, 10
-    acc_groups = np.zeros((num_runs_kmeans, len(range_clusters)))
+    num_classes = args.num_clusters if args.pseudo_labels else Config.num_action_classes
 
-    # todo: comment for supervised learning
-    pca_features = {phase: None for phase in ['trainval', 'test']}
-    kmeans_trained = None
+    if args.pseudo_labels:
+        visual_features = {phase: features_clustering.compute_visual_features(phase) for phase in ['trainval', 'test']}
+        pca_model = features_clustering.fit_pca(256, visual_features)
+        pca_features = {phase: features_clustering.compute_pca_features(visual_features[phase], pca_model) for phase in ['trainval', 'test']}
+        kmeans_trained = features_clustering.fit_kmeans(args.num_clusters, pca_features)
 
-    print('loss_factor = ', loss_factor)
+        group_datasets = {phase: Dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features,
+                          augment=args.augment, pseudo_labels=args.pseudo_labels) for phase in ['trainval', 'test']}
+    else:
+        group_datasets = {phase: Dataset.GroupFeatures(phase, augment=args.augment, pseudo_labels=args.pseudo_labels)
+                          for phase in ['trainval', 'test']}
 
-    for i in range(num_runs_kmeans):
+    # Create training and test dataloaders
+    dataloaders_dict = {
+        'trainval': DataLoader(group_datasets['trainval'], batch_size=args.batch_size, shuffle=True,
+                               num_workers=args.workers),
+        'test': DataLoader(group_datasets['test'], batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
+    }
 
-        for j, cluster in enumerate(range_clusters):
-            # visual_features = {phase: Clustering_with_p3d_features.compute_visual_features(phase)\
-            #                    for phase in ['trainval', 'test']}
-            #
-            # pca_model = Clustering_with_p3d_features.fit_pca(256, visual_features)
-            # pca_features = {phase: Clustering_with_p3d_features.compute_pca_features(phase, pca_model) for phase in ['trainval', 'test']}
-            #
-            num_classes = cluster if Config.use_pseudo_labels else Config.num_action_classes
-            # kmeans_trained = Clustering_with_p3d_features.fit_kmeans(cluster, pca_features)
+    myNet = GarSkeletonModel(num_action_classes=num_classes)
+    myNet.to(Config.device)
+    print(myNet)
 
-            # Create training and validation datasets
-            group_datasets = {
-                phase: Dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features, augment=args.augment)
-                for phase in ['trainval', 'test']}
+    # Loss and optimizer
+    optimizer = torch.optim.Adam(myNet.parameters(), lr=lr_activity)
 
-            # Create training and test dataloaders
-            dataloaders_dict = {
-                'trainval': DataLoader(group_datasets['trainval'], batch_size=batch_size, shuffle=True, num_workers=8),
-                'test': DataLoader(group_datasets['test'], batch_size=batch_size, shuffle=True, num_workers=8)}
+    # Train and evaluate, save best accuracy
+    model_ft, acc_groups, acc_persons = train_model(myNet, dataloaders_dict, criterion_single, criterion_groups,
+                                                    optimizer,
+                                                    args.epochs, lr_activity, epoch_decay, lr_decay,
+                                                    loss_factor=args.loss_balancer)
 
-            myNet = GarSkeletonModel(num_action_classes=num_classes)
-            myNet.to(Config.device)
-            print(myNet)
-
-            # Loss and optimizer
-            optimizer = torch.optim.Adam(myNet.parameters(), lr=lr_activity)
-
-            # Train and evaluate, save best accuracy
-            model_ft, acc_groups[i, j], acc_persons[i, j] = train_model(myNet, dataloaders_dict, criterion_single,
-                                                                        criterion_groups, optimizer, 80, lr_activity,
-                                                                        epoch_decay, lr_decay, loss_factor=loss_factor)
-
-            # Confusion Matrix
-            compute_confusion_matrix(dataloaders_dict['test'], model_ft, Config.num_group_activity_classes)
+    # Confusion Matrix
+    compute_confusion_matrix(dataloaders_dict['test'], model_ft, Config.num_group_activity_classes)
 
     np.set_printoptions(precision=4)
-    print('Acc Persons: ', acc_persons)
-    print('Acc Groups: ', acc_groups)
+    print('Best Acc Persons: ', acc_persons)
+    print('Best Acc Groups: ', acc_groups)
     print('\n')
-
-    print('Single action mean accuracy over number of cluster = {}'.format(np.mean(acc_persons, axis=0)))
-    print('Single action variance accuracy over number of cluster = {}'.format(np.var(acc_persons, axis=0)))
-    print('Group activity mean accuracy over number of cluster = {}'.format(np.mean(acc_groups, axis=0)))
-    print('Group activity variance accuracy over number of cluster = {}'.format(np.var(acc_groups, axis=0)))

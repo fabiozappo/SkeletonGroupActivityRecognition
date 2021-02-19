@@ -13,7 +13,7 @@ class GarSkeletonModel(nn.Module):
         self.concatenated_dim = 96 if Config.use_dist_as_input_stream else 64
         self.num_action_classes = num_action_classes  # varibile per pseudolabels.
         self.num_group_classes = Config.num_group_activity_classes
-        self.input_size = 1024 if Config.max_pooling_group_features else 1024 * 12
+        self.input_size = 1024
 
         # position
         self.conv1 = nn.Conv2d(3, 64, kernel_size=1, padding=0, stride=1)
