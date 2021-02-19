@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch
 from torch.utils.data import DataLoader
 
-from Datasets import Dataset
+import dataset
 from Configs import Config, features_clustering
 
 from Models.GarSkeletonModel import GarSkeletonModel
@@ -165,10 +165,10 @@ if __name__ == "__main__":
         pca_features = {phase: features_clustering.compute_pca_features(visual_features[phase], pca_model) for phase in ['trainval', 'test']}
         kmeans_trained = features_clustering.fit_kmeans(args.num_clusters, pca_features)
 
-        group_datasets = {phase: Dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features,
-                          augment=args.augment, pseudo_labels=args.pseudo_labels) for phase in ['trainval', 'test']}
+        group_datasets = {phase: dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features,
+                                                       augment=args.augment, pseudo_labels=args.pseudo_labels) for phase in ['trainval', 'test']}
     else:
-        group_datasets = {phase: Dataset.GroupFeatures(phase, augment=args.augment, pseudo_labels=args.pseudo_labels)
+        group_datasets = {phase: dataset.GroupFeatures(phase, augment=args.augment, pseudo_labels=args.pseudo_labels)
                           for phase in ['trainval', 'test']}
 
     # Create training and test dataloaders
