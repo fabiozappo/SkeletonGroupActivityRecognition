@@ -244,7 +244,7 @@ def nan_or_inf(tensor):
 # Inizializzazione comune delle features
 features = {phase: initialize_group_feature_and_label_list(phase, skeletons_path) for phase in ['trainval', 'test']}
 for phase in ['trainval', 'test']:
-    if os.path.exists(features_path + phase + '.npy'):
+    if not os.path.exists(features_path + phase + '.npy'):
         features_clustering.compute_visual_features(phase, weights_path=weights_path, images_paths=features[phase]['person_images_path'])
 
 
