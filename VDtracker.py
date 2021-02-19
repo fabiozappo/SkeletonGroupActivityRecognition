@@ -9,7 +9,7 @@ from tqdm import tqdm
 from shutil import copyfile
 import glob
 
-video_folder = '/work/data_and_extra/volleyball_dataset/videos'
+video_folder = '/work/sk-gar/volleyball_dataset/videos'
 activity_list = ['r_set', 'r_spike', 'r-pass', 'r_winpoint', 'l_winpoint', 'l-pass', 'l-spike', 'l_set']
 action_list = ['waiting', 'setting', 'digging', 'falling', 'spiking', 'blocking', 'jumping', 'moving', 'standing']
 max_num_players = 12
@@ -115,8 +115,8 @@ def save_cropped_image(frame_path, person_index, frame, pos, action_label, activ
     try:
         cv2.imwrite(save_img_path, cropped_image)
     except:
-        print(save_img_path)  # '/work/data_and_extra/volleyball_dataset/tracked_persons/11/32835/32843/10_380_1280_502_1280_8_3.jpg
-        split_path = save_img_path.split('/')[:-2]  # /work/data_and_extra/volleyball_dataset/tracked_persons/11/32835/
+        print(save_img_path)  # '/work/sk-gar/volleyball_dataset/tracked_persons/11/32835/32843/10_380_1280_502_1280_8_3.jpg
+        split_path = save_img_path.split('/')[:-2]  # /work/sk-gar/volleyball_dataset/tracked_persons/11/32835/
         current_folder = save_img_path.split('/')[-2]
         previous_folder = str(int(current_folder)-1)  # 32843 ----> 32842
         idx_actor = save_img_path.split('/')[-1].split('_')[0]

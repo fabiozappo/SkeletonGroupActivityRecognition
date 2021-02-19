@@ -9,7 +9,7 @@ import os
 
 # Flags
 parser = argparse.ArgumentParser()
-parser.add_argument("--image_dir", default="/work/data_and_extra/volleyball_dataset/tracked_persons/",
+parser.add_argument("--image_dir", default="/work/sk-gar/volleyball_dataset/tracked_persons/",
                     help="Process a directory of images. Read all standard formats (jpg, png, bmp, etc.).")
 parser.add_argument("--save_skeletons", action='store_true', help="Enable to save skeletons.")
 parser.add_argument("--no_display", action='store_true', help="Enable to disable the visual display.")
@@ -65,4 +65,4 @@ for imagePath in tqdm(imagePaths):
             np_joints = np_joints if np_joints.shape == (25, 3) else np.zeros((25, 3))
             np.save(out_file, np_joints)
 
-#python3 extract_skeletons.py --image_dir /work/data_and_extra/volleyball_dataset/tracked_persons/ --no --save
+#python3 extract_skeletons.py --image_dir /work/sk-gar/volleyball_dataset/tracked_persons/ --no --save

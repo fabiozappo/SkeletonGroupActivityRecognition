@@ -24,10 +24,10 @@ action_list = ['waiting', 'setting', 'digging', 'falling', 'spiking', 'blocking'
 activity_list = ['r_set', 'r_spike', 'r-pass', 'r_winpoint', 'l_winpoint', 'l-pass', 'l-spike', 'l_set']
 
 
-persons_imgs_path = '/work/data_and_extra/volleyball_dataset/tracked_persons/'
-skeletons_path = '/work/data_and_extra/volleyball_dataset/tracked_skeletons/'
-weights_path = '/work/code/Weights/p3d_rgb_199.checkpoint.pth.tar'
-features_path = '/work/data_and_extra/volleyball_dataset/P3Dfeatures'
+persons_imgs_path = '/work/sk-gar/volleyball_dataset/tracked_persons/'
+skeletons_path = '/work/sk-gar/volleyball_dataset/tracked_skeletons/'
+weights_path = '/work/sk-gar/Weights/p3d_rgb_199.checkpoint.pth.tar'
+features_path = '/work/sk-gar/volleyball_dataset/P3Dfeatures'
 
 
 def center_skeleton_in_midhip_and_divide_by_torso(group_spatio_temporal_feature):

@@ -14,7 +14,7 @@ from Models.P3D import P3D199
 from Configs import Config
 import glob
 
-features_path = '/work/data_and_extra/volleyball_dataset/P3Dfeatures'
+features_path = '/work/sk-gar/volleyball_dataset/P3Dfeatures'
 dim_features = 2048
 
 

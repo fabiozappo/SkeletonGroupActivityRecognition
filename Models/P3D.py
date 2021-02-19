@@ -379,7 +379,7 @@ def get_optim_policies(model=None, modality='RGB', enable_pbn=True):
 
 
 if __name__ == '__main__':
-    weights_path = '/work/code/Weights/p3d_rgb_199.checkpoint.pth.tar'
+    weights_path = '/work/sk-gar/Weights/p3d_rgb_199.checkpoint.pth.tar'
     model = P3D199(pretrained=True, num_classes=400, weights_path=weights_path)
     model = model.cuda().eval()
     print(model)

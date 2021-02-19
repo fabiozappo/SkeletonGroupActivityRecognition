@@ -1,15 +1,15 @@
 # Start FROM Nvidia PyTorch image https://ngc.nvidia.com/catalog/containers/nvidia:pytorch
-FROM nvcr.io/nvidia/pytorch:20.12-py3 as model
+FROM nvcr.io/nvidia/pytorch:20.12-py3 as skeleton-group-activity-recognition
 
 # Install linux packages
-RUN apt update && apt install -y screen libgl1-mesa-glx
+RUN apt update && apt install -y screen libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies
-RUN python -m pip install --upgrade pip
+RUN python -m pip install --upgrade pip --no-cache-dir
 COPY requirements.txt .
-RUN pip install -r requirements.txt gsutil
+RUN pip install -r requirements.txt gsutil --no-cache-dir
 
-WORKDIR /work/code
+WORKDIR /work/sk-gar
 
 CMD /bin/bash
 
@@ -20,7 +20,7 @@ FROM nvidia/cuda:10.0-cudnn7-devel as openpose
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 python3-dev python3-pip git g++ wget make libprotobuf-dev protobuf-compiler libopencv-dev \
-libgoogle-glog-dev libboost-all-dev libcaffe-cuda-dev libhdf5-dev libatlas-base-dev
+libgoogle-glog-dev libboost-all-dev libcaffe-cuda-dev libhdf5-dev libatlas-base-dev && rm -rf /var/lib/apt/lists/*
 
 #for python api
 RUN pip3 install numpy opencv-python==4.0.0.21
@@ -42,6 +42,6 @@ WORKDIR /openpose/build
 RUN sed -i 's/option(BUILD_PYTHON "Build OpenPose python." OFF)/option(BUILD_PYTHON "Build OpenPose python." ON)/' ../CMakeLists.txt
 RUN cmake .. && make -j `nproc`
 
-WORKDIR /work/code
+WORKDIR /work/sk-gar
 ENV PYTHONPATH "${PYTHONPATH}:/openpose/build/python/openpose"
-RUN python3 -m pip install tqdm
+RUN python3 -m pip install tqdm --no-cache-dir
