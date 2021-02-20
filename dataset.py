@@ -14,10 +14,10 @@ from tqdm import tqdm
 
 
 # Trainval and test list
-# trainval_and_test_dicts = {'trainval': [0, 1, 2, 3, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 22, 23, 24, 26, 27, 28, 30, 31, 32, 33, 36, 38, 39, 40, 41, 42, 46, 48, 49, 50, 51, 52, 53, 54],
-#                            'test': [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
-trainval_and_test_dicts = {'trainval': [13],
-                           'test': [23]}
+trainval_and_test_dicts = {'trainval': [0, 1, 2, 3, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 22, 23, 24, 26, 27, 28, 30, 31, 32, 33, 36, 38, 39, 40, 41, 42, 46, 48, 49, 50, 51, 52, 53, 54],
+                           'test': [4, 5, 9, 11, 14, 20, 21, 25, 29, 34, 35, 37, 43, 44, 45, 47]}
+# trainval_and_test_dicts = {'trainval': [13],
+#                            'test': [23]}
 
 
 action_list = ['waiting', 'setting', 'digging', 'falling', 'spiking', 'blocking', 'jumping', 'moving', 'standing']
@@ -206,8 +206,8 @@ def initialize_group_feature_and_label_list(mode, skeletons_path):
                 group_actions.append(int(action_label))
 
             # all skeletons in group activity are ready
-            if Config.has_to_erase_feet_and_head:
-                group_spatio_temporal_feature = erase_feet_and_head(group_spatio_temporal_feature)
+            group_spatio_temporal_feature = erase_feet_and_head(group_spatio_temporal_feature)
+
             if Config.has_to_apply_smoothing:
                 group_spatio_temporal_feature = compute_smoothed_skeletons(group_spatio_temporal_feature)
 
@@ -299,6 +299,7 @@ class GroupFeatures(Dataset):
         max_actors = 12
         num_actors = group_skeleton.size()[0]
 
+        # Padding, network swap channels so need a costant shape input
         padded_group_skeleton = torch.zeros([max_actors, 3, 15, 10], dtype=torch.float)
         padded_group_skeleton[:num_actors, :, :, :] = group_skeleton
         padded_group_distances = torch.zeros([max_actors, 2, 15, 10], dtype=torch.float)

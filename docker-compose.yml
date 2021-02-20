@@ -26,7 +26,7 @@ services:
            - DISPLAY=$DISPLAY # for img show. run xhost + before run the container
 
 
-    tesi-magistrale-openpose:
+    openpose:
       build:
         context: ./
         target: openpose
@@ -38,7 +38,7 @@ services:
           target: /tmp/.X11-unix # for img show. run xhost + before run the container
 
         - type: bind
-          source: ./SkeletonGroupActivityRecognition
+          source: ./.
           target: /work/sk-gar
 
       stdin_open: true # docker run -i

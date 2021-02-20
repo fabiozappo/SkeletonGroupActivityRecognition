@@ -145,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', default=64, help='batch size dimension')
     parser.add_argument('--workers', type=int, default=8, help='num_workers')
     parser.add_argument('--loss_balancer', type=float, default=0.2, help='factor between individual and group loss')
+    parser.add_argument('--pivot_distances', action='store_true', help='use pivot distance as third network input stream')
 
     args = parser.parse_args()
 
@@ -165,8 +166,9 @@ if __name__ == "__main__":
         pca_features = {phase: features_clustering.compute_pca_features(visual_features[phase], pca_model) for phase in ['trainval', 'test']}
         kmeans_trained = features_clustering.fit_kmeans(args.num_clusters, pca_features)
 
-        group_datasets = {phase: dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features,
-                                                       augment=args.augment, pseudo_labels=args.pseudo_labels) for phase in ['trainval', 'test']}
+        group_datasets = {phase: dataset.GroupFeatures(phase, kmeans_trained=kmeans_trained, pca_features=pca_features, augment=args.augment,
+                                                       pseudo_labels=args.pseudo_labels)
+                          for phase in ['trainval', 'test']}
     else:
         group_datasets = {phase: dataset.GroupFeatures(phase, augment=args.augment, pseudo_labels=args.pseudo_labels)
                           for phase in ['trainval', 'test']}
@@ -178,7 +180,7 @@ if __name__ == "__main__":
         'test': DataLoader(group_datasets['test'], batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
     }
 
-    myNet = GarSkeletonModel(num_action_classes=num_classes)
+    myNet = GarSkeletonModel(num_action_classes=num_classes, use_pivot_distances=args.pivot_distances)
     myNet.to(Config.device)
     print(myNet)
 

@@ -6,11 +6,12 @@ import torch.nn.functional as F
 
 
 class GarSkeletonModel(nn.Module):
-    def __init__(self, num_action_classes=Config.num_action_classes):
+    def __init__(self, num_action_classes, use_pivot_distances):
         super(GarSkeletonModel, self).__init__()
-        self.num_joints = 15 if Config.has_to_erase_feet_and_head else 25
+        self.num_joints = 15
+        self.use_pivot_distances = use_pivot_distances
         self.device = Config.device
-        self.concatenated_dim = 96 if Config.use_dist_as_input_stream else 64
+        self.concatenated_dim = 96 if self.use_pivot_distances else 64
         self.num_action_classes = num_action_classes  # varibile per pseudolabels.
         self.num_group_classes = Config.num_group_activity_classes
         self.input_size = 1024
@@ -30,12 +31,13 @@ class GarSkeletonModel(nn.Module):
                                     nn.MaxPool2d(2)
                                     )
         # pivot distance
-        self.conv1d = nn.Conv2d(2, 64, kernel_size=1, padding=0, stride=1)
-        self.conv2d = nn.Conv2d(64, 32, kernel_size=(3, 1), padding=(1, 0), stride=1)
-        self.conv3d = nn.Conv2d(in_channels=self.num_joints, out_channels=64, kernel_size=3, stride=1, padding=1)
-        self.conv4d = nn.Sequential(nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1),
-                                    nn.MaxPool2d(2)
-                                    )
+        if self.use_pivot_distances:
+            self.conv1d = nn.Conv2d(2, 64, kernel_size=1, padding=0, stride=1)
+            self.conv2d = nn.Conv2d(64, 32, kernel_size=(3, 1), padding=(1, 0), stride=1)
+            self.conv3d = nn.Conv2d(in_channels=self.num_joints, out_channels=64, kernel_size=3, stride=1, padding=1)
+            self.conv4d = nn.Sequential(nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, stride=1, padding=1),
+                                        nn.MaxPool2d(2)
+                                        )
         # concatenate motion & position & pivot-differences
         self.conv5 = nn.Sequential(
             nn.Conv2d(in_channels=self.concatenated_dim, out_channels=128, kernel_size=3, stride=1, padding=1),
@@ -90,7 +92,7 @@ class GarSkeletonModel(nn.Module):
             out_m = self.conv4m(out)
 
             # pivot difference
-            if Config.use_dist_as_input_stream:
+            if self.use_pivot_distances:
                 out = self.conv1d(d)
                 out = self.conv2d(out)
                 out = out.permute(0, 2, 1, 3).contiguous()
@@ -98,8 +100,7 @@ class GarSkeletonModel(nn.Module):
                 out_d = self.conv4d(out)
 
             # concatenate motion & position
-            out = torch.cat((out_p, out_m, out_d), dim=1) if Config.use_dist_as_input_stream else torch.cat(
-                (out_p, out_m), dim=1)
+            out = torch.cat((out_p, out_m, out_d), dim=1) if self.use_pivot_distances else torch.cat((out_p, out_m), dim=1)
             out = self.conv5(out)
             out = self.conv6(out)
 
