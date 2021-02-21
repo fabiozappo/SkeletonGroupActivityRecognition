@@ -15,16 +15,18 @@ parser.add_argument("--save_skeletons", action='store_true', help="Enable to sav
 parser.add_argument("--no_display", action='store_true', help="Enable to disable the visual display.")
 args = parser.parse_args()
 
+
 def frame_is_in_clip(frame_path):
     central_frame = int(frame_path.split('/')[-3])
     frame = int(frame_path.split('/')[-2])
     return central_frame-4 <= frame <= central_frame+5
 
+
 # Custom Params (refer to include/openpose/flags.hpp for more parameters)
 params = dict()
 params["model_folder"] = "/openpose/models/"
 params["number_people_max"] = 1
-params["net_resolution"] = '368x368' # todo: non mi garba
+params["net_resolution"] = '368x368'
 
 # Starting OpenPose
 opWrapper = op.WrapperPython()
@@ -64,5 +66,3 @@ for imagePath in tqdm(imagePaths):
             # if joint extraction fails save np.zeros(25x3) instead of np.empty()
             np_joints = np_joints if np_joints.shape == (25, 3) else np.zeros((25, 3))
             np.save(out_file, np_joints)
-
-#python3 extract_skeletons.py --image_dir /work/sk-gar/volleyball_dataset/tracked_persons/ --no --save

@@ -31,10 +31,8 @@ def compute_confusion_matrix(test_loader, model, num_classes):
             inputs, distances, group_labels, persons_labels_batch = inputs.to(Config.device), distances.to(
                 Config.device), group_labels.to(Config.device), persons_labels_batch.to(Config.device)
 
-            since = time.time()
             persons_output_list, group_output = model(inputs, distances, num_actors)
             _, preds = torch.max(group_output, 1)
-            print('Predicting time for mini-batch: ', time.time() - since)
             for t, p in zip(group_labels.view(-1), preds.view(-1)):
                 confusion_matrix[t.long(), p.long()] += 1
 

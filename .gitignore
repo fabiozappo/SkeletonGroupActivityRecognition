@@ -23,29 +23,6 @@
 
 
 *.cfg
-!cfg/yolov3*.cfg
-
-storage.googleapis.com
-runs/*
-data/*
-!data/images/zidane.jpg
-!data/images/bus.jpg
-!data/coco.names
-!data/coco_paper.names
-!data/coco.data
-!data/coco_*.data
-!data/coco_*.txt
-!data/trainvalno5k.shapes
-!data/*.sh
-
-pycocotools/*
-results*.txt
-gcp_test*.sh
-
-# Datasets -------------------------------------------------------------------------------------------------------------
-coco/
-coco128/
-VOC/
 
 # MATLAB GitIgnore -----------------------------------------------------------------------------------------------------
 *.m~
@@ -58,8 +35,6 @@ VOC/
 *.onnx
 *.mlmodel
 *.torchscript
-darknet53.conv.74
-yolov3-tiny.conv.15
 
 # GitHub Python GitIgnore ----------------------------------------------------------------------------------------------
 # Byte-compiled / optimized / DLL files
@@ -246,3 +221,6 @@ atlassian-ide-plugin.xml
 
 # Cursive Clojure plugin
 .idea/replstate.xml
+
+volleyball_dataset/
+!volleyball_dataset/.gitkeep
