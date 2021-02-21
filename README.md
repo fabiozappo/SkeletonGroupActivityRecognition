@@ -20,17 +20,26 @@ docker-compose build
 ```
 
 ## Person tracking
+To enter in the container and track person in videos use:
 ```
-docker docker-compose run --rm skeleton-group-activity-recognition exec python VDtracker.py
+docker-compose run --rm skeleton-group-activity-recognition
+python VDtracker.py
 ```
+Ctrl + D to exit from the container
 
 ## Skeleton extraction 
+To enter in the openpose container and extract skeletons from each person tracklet:
 ```
-docker docker-compose run --rm openpose exec python extract_skeletons.py --no_display --save
+docker docker-compose run --rm openpose 
+python extract_skeletons.py --no_display --save
 ```
+Ctrl + D to exit from the container
 
 
 ## Group Activity Recognition
 ```
-docker docker-compose run --rm skeleton-group-activity-recognition exec python train.py --augment --pivot --pseudo_labels
+docker docker-compose run --rm skeleton-group-activity-recognition 
+python train.py --augment --pivot --pseudo_labels
 ```
+Ctrl + D to exit from the container
+
