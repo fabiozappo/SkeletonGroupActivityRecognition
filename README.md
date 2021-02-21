@@ -6,7 +6,7 @@ Ubuntu >= 16.04
 NVIDIA Container Toolkit
 Docker Compose
 ```
-
+For instructions on getting started with the NVIDIA Container Toolkit, refer to the [installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker).
 
 ## Dataset and Pretrained Network
 Download volleyball dataset from author's provided [link](http://vml.cs.sfu.ca/wp-content/uploads/volleyballdataset/volleyball.zip) and extract zip in ./SkeletonGroupActivityRecognition/volleyball_dataset/
