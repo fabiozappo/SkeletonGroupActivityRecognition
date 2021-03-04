@@ -1,4 +1,5 @@
-# Learning Group Activities from Skeletons without Individual Action Labels. [PDF](http://www.micc.unifi.it/seidenari/publication/icpr-2020-1/icpr-2020-1.pdf)
+# Learning Group Activities from Skeletons without Individual Action Labels.
+#### This is an official implementation of Learning Group Activities from Skeletons without Individual Action Labels paper [[Link]](http://www.micc.unifi.it/seidenari/publication/icpr-2020-1/icpr-2020-1.pdf).
 
 ## Requirements
 ```
@@ -43,3 +44,12 @@ python train.py --augment --pivot --pseudo_labels
 ```
 Ctrl + D to exit from the container
 
+## Citation
+If you find this code to be useful in your own research, please consider citing our paper:
+```bib
+@inproceedings{Zappardino2020LearningGA,
+  title={Learning Group Activities from Skeletons without Individual Action Labels},
+  author={Fabio Zappardino and Tiberio Uricchio and Lorenzo Seidenari and A. D. Bimbo},
+  year={2020}
+}
+```
