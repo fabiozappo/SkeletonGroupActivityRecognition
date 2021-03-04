@@ -26,7 +26,7 @@ def frame_is_in_clip(frame_path):
 params = dict()
 params["model_folder"] = "/openpose/models/"
 params["number_people_max"] = 1
-params["net_resolution"] = '368x368'
+# params["net_resolution"] = '368x368' # uncomment this line if you have low gpu memory
 
 # Starting OpenPose
 opWrapper = op.WrapperPython()
