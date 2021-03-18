@@ -53,9 +53,11 @@ for imagePath in tqdm(imagePaths):
 
         if not args.no_display:
             plot_image = datum.cvOutputData
-            for x, y, p in np_joints[:15]:
-                plot_image = cv2.circle(plot_image, (x, y), radius=2, color=(0, 0, 0), thickness=-1)
-            cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", plot_image)
+
+            if np_joints.shape == (25, 3):
+                for x, y, p in np_joints[:15]:
+                    plot_image = cv2.circle(plot_image, (x, y), radius=2, color=(0, 0, 0), thickness=-1)
+            cv2.imshow("OpenPose Result", plot_image)
             cv2.waitKey(0)
 
         if args.save_skeletons:
