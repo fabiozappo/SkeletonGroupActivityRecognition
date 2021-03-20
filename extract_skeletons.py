@@ -48,7 +48,6 @@ image_iter = trange(len(image_list))
 # Process and display images
 for im in image_iter:
     image_path = image_list[im]
-    print(image_path)
     video_id = int(image_path.parent.parent.stem)
     frame_id = int(image_path.parent.stem)
     image_id = int(image_path.stem)
