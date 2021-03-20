@@ -12,7 +12,7 @@ from tqdm import trange
 
 # Flags
 parser = argparse.ArgumentParser()
-parser.add_argument("--image_dir", default="/work/sk-gar/volleyball_dataset/videos/",
+parser.add_argument("--image_dir", default="/work/sk-gar/volleyball_dataset/",
                     help="Process a directory of images. Read all standard formats (jpg, png, bmp, etc.).")
 parser.add_argument("--save_skeletons", action='store_true', help="Enable to save skeletons.")
 parser.add_argument("--no_display", action='store_true', help="Enable to disable the visual display.")
@@ -27,7 +27,7 @@ def frame_is_in_clip(frame_path):
 
 # Custom Params (refer to include/openpose/flags.hpp for more parameters)
 params = dict(model_folder="/openpose/models/", number_people_max=1)
-params["net_resolution"] = '368x368' # uncomment this line if you have low gpu memory
+# params["net_resolution"] = '368x368' # uncomment this line if you have low gpu memory
 
 # Starting OpenPose
 opWrapper = op.WrapperPython()
@@ -55,6 +55,7 @@ for im in image_iter:
     if image_id not in annot_data[(video_id, frame_id)].keys():
         continue
 
+    # Read frame just one time
     imageToProcess = cv2.imread(str(image_path))
 
     for i, bbox in enumerate(annot_data[(video_id, frame_id)][image_id]):
@@ -77,7 +78,7 @@ for im in image_iter:
                 if np_joints.shape == (25, 3):
                     for x, y, p in np_joints[:15]:
                         plot_image = cv2.circle(plot_image, (x, y), radius=2, color=(0, 0, 0), thickness=-1)
-                cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", plot_image)
+                cv2.imshow("OpenPose Results", plot_image)
                 cv2.waitKey(0)
 
             if args.save_skeletons:
