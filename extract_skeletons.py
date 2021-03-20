@@ -1,15 +1,18 @@
+import logging
 import argparse
 import time
 import cv2
 import numpy as np
 import pyopenpose as op
-import glob
-from tqdm import tqdm
 import os
+import pickle
+from pathlib import Path
+
+from tqdm import trange
 
 # Flags
 parser = argparse.ArgumentParser()
-parser.add_argument("--image_dir", default="/work/sk-gar/volleyball_dataset/tracked_persons/",
+parser.add_argument("--image_dir", default="/work/sk-gar/volleyball_dataset/videos/",
                     help="Process a directory of images. Read all standard formats (jpg, png, bmp, etc.).")
 parser.add_argument("--save_skeletons", action='store_true', help="Enable to save skeletons.")
 parser.add_argument("--no_display", action='store_true', help="Enable to disable the visual display.")
@@ -23,48 +26,66 @@ def frame_is_in_clip(frame_path):
 
 
 # Custom Params (refer to include/openpose/flags.hpp for more parameters)
-params = dict()
-params["model_folder"] = "/openpose/models/"
-params["number_people_max"] = 1
-# params["net_resolution"] = '368x368' # uncomment this line if you have low gpu memory
+params = dict(model_folder="/openpose/models/", number_people_max=1)
+params["net_resolution"] = '368x368' # uncomment this line if you have low gpu memory
 
 # Starting OpenPose
 opWrapper = op.WrapperPython()
 opWrapper.configure(params)
 opWrapper.start()
 
+
+data_path = Path(args.image_dir)
+annot = data_path / 'tracks.pkl'
+# read BB annotation file
+with open(annot, "rb") as file:
+    annot_data = pickle.load(file)
+
 # Read frames on directory
-imagePaths = glob.glob(args.image_dir + '/**/**/**/*.jpg')
-imagePaths = [f for f in imagePaths if frame_is_in_clip(f)]
+image_list = list(data_path.glob("**/*.jpg"))
+image_iter = trange(len(image_list))
 
 # Process and display images
-for imagePath in tqdm(imagePaths):
+for im in image_iter:
+    image_path = image_list[im]
+    print(image_path)
+    video_id = int(image_path.parent.parent.stem)
+    frame_id = int(image_path.parent.stem)
+    image_id = int(image_path.stem)
+    if image_id not in annot_data[(video_id, frame_id)].keys():
+        continue
 
-    out_file = imagePath.replace('tracked_persons', 'tracked_skeletons').replace('.jpg', '.npy')
-    if not os.path.exists(out_file):
-        datum = op.Datum()
-        imageToProcess = cv2.imread(imagePath)
+    imageToProcess = cv2.imread(str(image_path))
 
-        datum.cvInputData = imageToProcess
-        opWrapper.emplaceAndPop([datum])
+    for i, bbox in enumerate(annot_data[(video_id, frame_id)][image_id]):
+        out_file = image_path.parent / f'{image_id}_{i}.npy'
+        if not out_file.exists():
+            datum = op.Datum()
 
-        joints = datum.poseKeypoints
-        np_joints = np.array(joints).squeeze(axis=0)  # assert single person detection
+            # Crop BB from image
+            crop = imageToProcess[bbox[1]:bbox[3], bbox[0]:bbox[2]].copy()
 
-        if not args.no_display:
-            plot_image = datum.cvOutputData
+            datum.cvInputData = crop
+            opWrapper.emplaceAndPop([datum])
 
-            if np_joints.shape == (25, 3):
-                for x, y, p in np_joints[:15]:
-                    plot_image = cv2.circle(plot_image, (x, y), radius=2, color=(0, 0, 0), thickness=-1)
-            cv2.imshow("OpenPose Result", plot_image)
-            cv2.waitKey(0)
+            joints = datum.poseKeypoints
+            np_joints = np.array(joints).squeeze(axis=0)  # assert single person detection
 
-        if args.save_skeletons:
-            out_folder = '/'.join(out_file.split('/')[:-1])
-            if not os.path.exists(out_folder):
-                os.makedirs(out_folder)
+            if not args.no_display:
+                plot_image = datum.cvOutputData
 
-            # if joint extraction fails save np.zeros(25x3) instead of np.empty()
-            np_joints = np_joints if np_joints.shape == (25, 3) else np.zeros((25, 3))
-            np.save(out_file, np_joints)
+                if np_joints.shape == (25, 3):
+                    for x, y, p in np_joints[:15]:
+                        plot_image = cv2.circle(plot_image, (x, y), radius=2, color=(0, 0, 0), thickness=-1)
+                cv2.imshow("OpenPose 1.5.1 - Tutorial Python API", plot_image)
+                cv2.waitKey(0)
+
+            if args.save_skeletons:
+                out_file = str(out_file)
+                out_folder = '/'.join(out_file.split('/')[:-1])
+                if not os.path.exists(out_folder):
+                    os.makedirs(out_folder)
+
+                # if joint extraction fails save np.zeros(25x3) instead of np.empty()
+                np_joints = np_joints if np_joints.shape == (25, 3) else np.zeros((25, 3))
+                np.save(out_file, np_joints)

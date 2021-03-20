@@ -223,4 +223,5 @@ atlassian-ide-plugin.xml
 .idea/replstate.xml
 
 volleyball_dataset/
+volleyball_dataset_bk/
 !volleyball_dataset/.gitkeep
