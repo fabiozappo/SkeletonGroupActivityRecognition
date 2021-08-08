@@ -31,7 +31,7 @@ Ctrl + D to exit from the container
 ## Skeleton extraction 
 To enter in the openpose container and extract skeletons from each person tracklet:
 ```
-docker docker-compose run --rm openpose 
+docker-compose run --rm openpose 
 python3 extract_skeletons.py --no_display --save
 ```
 Ctrl + D to exit from the container
