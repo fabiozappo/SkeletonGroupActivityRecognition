@@ -46,7 +46,7 @@ for imagePath in tqdm(imagePaths):
         imageToProcess = cv2.imread(imagePath)
 
         datum.cvInputData = imageToProcess
-        opWrapper.emplaceAndPop([datum])
+        opWrapper.emplaceAndPop(op.VectorDatum([datum]))
 
         joints = datum.poseKeypoints
         np_joints = np.array(joints).squeeze(axis=0)  # assert single person detection
