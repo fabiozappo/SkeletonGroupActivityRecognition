@@ -5,44 +5,87 @@
 ```
 Ubuntu >= 16.04
 NVIDIA Container Toolkit
-Docker Compose
 ```
 For instructions on getting started with the NVIDIA Container Toolkit, refer to the [installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker).
 
 ## Dataset and Pretrained Network
 - Download volleyball dataset from author's provided [link](http://vml.cs.sfu.ca/wp-content/uploads/volleyballdataset/volleyball.zip) and extract zip in ./SkeletonGroupActivityRecognition/volleyball_dataset/ 
-- Download pretrained-3d-cnn weights from author's provided [link](https://drive.google.com/drive/folders/1u_l-yvhS0shpW6e0tCiqPE7Bd1qQZKdD) and put .tar file in ./SkeletonGroupActivityRecognition/Weights/
+- (In case use don't use the Docker container) Download pretrained-3d-cnn weights from author's provided [link](https://drive.google.com/drive/folders/1u_l-yvhS0shpW6e0tCiqPE7Bd1qQZKdD) and put .tar file in ./SkeletonGroupActivityRecognition/Weights/
 
-## Docker container build
 ```
-git clone https://github.com/fabiozappo/SkeletonGroupActivityRecognition.git 
-cd SkeletonGroupActivityRecognition
-docker-compose build
+SkeletonGroupActivityRecognition
+|-- ...
+|-- Dockerfile
+|-- VDtracker.py
+|-- Weights
+|   |-- p3d_flow_199.checkpoint.pth.tar
+|   `-- p3d_rgb_199.checkpoint.pth.tar
+|-- extract_skeletons.py
+|-- train.py
+`-- volleyball_dataset
+    `-- videos
 ```
 
-## Person tracking
-To enter in the container and track person in videos use:
+## Docker container
+Build the container:
 ```
-docker-compose run --rm skeleton-group-activity-recognition
-python VDtracker.py
+docker build -t skeleton-group-activity-recognition https://github.com/fabiozappo/SkeletonGroupActivityRecognition.git#main
 ```
-Ctrl + D to exit from the container
+Run the container:
+```
+docker run \
+  --rm -it \
+  --gpus="device=all" \
+  -v volleyball_dataset:/work/sk-gar/volleyball_dataset \
+  skeleton-group-activity-recognition
+```
 
-## Skeleton extraction 
-To enter in the openpose container and extract skeletons from each person tracklet:
+- `-it` & `--rm`: Starts the container with an interactive session and removes the container after closing the session.
+- optional: `--gpus='"device=0,1,2,3"'` restrict the GPU devices the container can access.
+- `-v ./volleyball_dataset:/work/sk-gar/volleyball_dataset`: Makes the host's folder `./volleyball_dataset` available inside the container at `/work/sk-gar/volleyball_dataset`
+- `skeleton-group-activity-recognition` the name/tag of the image
+
+## Running the scripts
+
+### Person tracking & Skeleton extraction 
 ```
-docker-compose run --rm openpose 
+python3 VDtracker.py
 python3 extract_skeletons.py --no_display --save
 ```
-Ctrl + D to exit from the container
-
-
-## Group Activity Recognition
+After running, there should be two directories `tracked_persons` and `tracked_skeletons`.
 ```
-docker docker-compose run --rm skeleton-group-activity-recognition 
-python train.py --augment --pivot --pseudo_labels
+SkeletonGroupActivityRecognition
+`-- volleyball_dataset
+    |-- tracked_persons
+    |-- tracked_skeletons
+    `-- videos
 ```
-Ctrl + D to exit from the container
+### Group Activity Recognition
+
+- Group activity labels only with data augmentation
+  ```
+  python train.py --augment --pivot --loss_balancer 0
+  ```
+- Group activity labels without data augmentation
+  ```
+  python train.py --pivot --loss_balancer 0
+  ```
+- Pseudo action labels from 3D-Resnet with augmentation
+  ```
+  python train.py --augment --pivot --pseudo_labels --loss_balancer 0
+  ```
+- Pseudo action labels from 3D-Resnet without augmentation
+  ```
+  python train.py --pivot --pseudo_labels --loss_balancer 0
+  ```
+- Supervised with data augmentation
+  ```
+  python train.py --augment --pivot
+  ```
+- Supervised without data augmentation
+  ```
+  python train.py --pivot
+  ```
 
 ## Citation
 If you find this code to be useful in your own research, please consider citing our paper:

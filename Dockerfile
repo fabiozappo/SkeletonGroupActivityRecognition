@@ -1,47 +1,53 @@
-# Start FROM Nvidia PyTorch image https://ngc.nvidia.com/catalog/containers/nvidia:pytorch
-FROM nvcr.io/nvidia/pytorch:20.12-py3 as skeleton-group-activity-recognition
+FROM nvidia/cuda:10.0-cudnn7-devel
+# Ubuntu 18.04.5 LTS
+# CUDA 10.0.130
+# cuDNN 7.6.05
 
-# Install linux packages
-RUN apt update && apt install -y screen libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
+# install required Ubuntu packages
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y \
+   # OpenPose
+   lsb-release sudo git cmake libopencv-dev \
+   # Skeleton Group Activity Recognition
+   libgl1-mesa-glx python3-dev python3-pip
 
-# Install python dependencies
-RUN python -m pip install --upgrade pip --no-cache-dir
-COPY requirements.txt .
-RUN pip install -r requirements.txt gsutil --no-cache-dir
 
-WORKDIR /work/sk-gar
+#
+# OpenPose
+#
+# compile OpenPose from source
+WORKDIR /openpose/
+RUN git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose . && \
+    git submodule update --init --recursive --remote && \
+    bash ./scripts/ubuntu/install_deps.sh
 
-CMD /bin/bash
-
-# https://hub.docker.com/r/cwaffles/openpose
-FROM nvidia/cuda:10.0-cudnn7-devel as openpose
-
-#get deps
-RUN apt-get update && \
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-python3-dev python3-pip git g++ wget make libprotobuf-dev protobuf-compiler libopencv-dev \
-libgoogle-glog-dev libboost-all-dev libcaffe-cuda-dev libhdf5-dev libatlas-base-dev && rm -rf /var/lib/apt/lists/*
-
-#for python api
-RUN pip3 install numpy opencv-python==4.0.0.21
-
-#replace cmake as old version has CUDA variable bugs
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.16.0/cmake-3.16.0-Linux-x86_64.tar.gz && \
-tar xzf cmake-3.16.0-Linux-x86_64.tar.gz -C /opt && \
-rm cmake-3.16.0-Linux-x86_64.tar.gz
-ENV PATH="/opt/cmake-3.16.0-Linux-x86_64/bin:${PATH}"
-
-#get openpose
-WORKDIR /openpose
-RUN git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose.git .
-RUN git checkout 363cd0b5d44ab127d0786ac1f3398e784933dd5d
-
-#build it TODO
 WORKDIR /openpose/build
+ARG DOWNLOAD_MODELS=ON
+RUN cmake \
+      -DBUILD_PYTHON=ON \
+      # in case you run into 'file DOWNLOAD HASH mismatch' 'status: [7;"Couldn't connect to server"]' use 'docker build . --build-arg DOWNLOAD_MODELS=OFF'
+      -DDOWNLOAD_BODY_25_MODEL=$DOWNLOAD_MODELS -DDOWNLOAD_BODY_MPI_MODEL=$DOWNLOAD_MODELS -DDOWNLOAD_HAND_MODEL=$DOWNLOAD_MODELS -DDOWNLOAD_FACE_MODEL=$DOWNLOAD_MODELS \
+      ..
+# fix 'nvcc fatal: Unsupported gpu architecture'
+RUN sed -ie 's/set(AMPERE "80 86")/#&/g'  ../cmake/Cuda.cmake && \
+    sed -ie 's/set(AMPERE "80 86")/#&/g'  ../3rdparty/caffe/cmake/Cuda.cmake
+# fix 'recipe for target 'caffe/src/openpose_lib-stamp/openpose_lib-configure' failed'
+RUN sed -i '5 i set(CUDA_cublas_device_LIBRARY "/usr/local/cuda-10.0/targets/x86_64-linux/lib/libcublas.so")' ../3rdparty/caffe/cmake/Cuda.cmake
 
-RUN sed -i 's/option(BUILD_PYTHON "Build OpenPose python." OFF)/option(BUILD_PYTHON "Build OpenPose python." ON)/' ../CMakeLists.txt
-RUN cmake .. && make -j `nproc`
-
-WORKDIR /work/sk-gar
+RUN make -j$(nproc)
+RUN make install
 ENV PYTHONPATH "${PYTHONPATH}:/openpose/build/python/openpose"
-RUN python3 -m pip install tqdm --no-cache-dir
+
+
+#
+# Learning Group Activities from Skeletons without Individual Action Labels
+#
+WORKDIR /work/sk-gar/
+RUN git clone https://github.com/fabiozappo/SkeletonGroupActivityRecognition.git .
+
+# install required python packages
+RUN pip3 install -r requirements.txt
+
+# download pretrained-3d-cnn weights
+RUN pip3 install gdown && \
+    gdown https://drive.google.com/uc?id=16aR8hNbinzk7nxj6LEmGqyopUt7GiLG8 -O Weights/p3d_flow_199.checkpoint.pth.tar && \
+    gdown https://drive.google.com/uc?id=1slkxHCUCReJaVo8X2xOkef8ARPKiKx2B -O Weights/p3d_rgb_199.checkpoint.pth.tar
