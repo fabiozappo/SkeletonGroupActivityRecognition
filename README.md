@@ -28,8 +28,9 @@ SkeletonGroupActivityRecognition
 
 ## Docker container
 Build the container:
+cd into cloned repo and run:
 ```
-docker build -t skeleton-group-activity-recognition https://github.com/fabiozappo/SkeletonGroupActivityRecognition.git#main
+docker build -t skeleton-group-activity-recognition:latest .
 ```
 Run the container:
 ```
